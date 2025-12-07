@@ -1,0 +1,925 @@
+# =============================================================================
+# Lab Test Name Mappings for Standardization
+# =============================================================================
+# This file maps various lab test name aliases to canonical names with LOINC codes.
+# LOINC (Logical Observation Identifiers Names and Codes) enables interoperability.
+# =============================================================================
+
+version: "1.0"
+last_updated: "2024-12-07"
+
+# =============================================================================
+# HEMATOLOGY - Complete Blood Count (CBC)
+# =============================================================================
+mappings:
+  hemoglobin:
+    canonical_name: "Hemoglobin"
+    loinc_code: "718-7"
+    category: "Hematology"
+    unit: "g/dL"
+    aliases:
+      - "hb"
+      - "hgb"
+      - "haemoglobin"
+      - "hemoglobin level"
+      - "hb level"
+      - "total hemoglobin"
+      - "blood hemoglobin"
+
+  hematocrit:
+    canonical_name: "Hematocrit"
+    loinc_code: "4544-3"
+    category: "Hematology"
+    unit: "%"
+    aliases:
+      - "hct"
+      - "pcv"
+      - "packed cell volume"
+      - "haematocrit"
+
+  red_blood_cells:
+    canonical_name: "Red Blood Cell Count"
+    loinc_code: "789-8"
+    category: "Hematology"
+    unit: "million/uL"
+    aliases:
+      - "rbc"
+      - "rbc count"
+      - "red blood cells"
+      - "erythrocytes"
+      - "erythrocyte count"
+      - "red cell count"
+      - "total rbc"
+
+  white_blood_cells:
+    canonical_name: "White Blood Cell Count"
+    loinc_code: "6690-2"
+    category: "Hematology"
+    unit: "/uL"
+    aliases:
+      - "wbc"
+      - "wbc count"
+      - "white blood cells"
+      - "leukocytes"
+      - "leukocyte count"
+      - "total wbc"
+      - "white cell count"
+      - "tlc"
+      - "total leukocyte count"
+
+  platelets:
+    canonical_name: "Platelet Count"
+    loinc_code: "777-3"
+    category: "Hematology"
+    unit: "/uL"
+    aliases:
+      - "plt"
+      - "platelet count"
+      - "platelets"
+      - "thrombocytes"
+      - "thrombocyte count"
+      - "platelet level"
+
+  mcv:
+    canonical_name: "Mean Corpuscular Volume"
+    loinc_code: "787-2"
+    category: "Hematology"
+    unit: "fL"
+    aliases:
+      - "mcv"
+      - "mean cell volume"
+      - "mean corpuscular volume"
+
+  mch:
+    canonical_name: "Mean Corpuscular Hemoglobin"
+    loinc_code: "785-6"
+    category: "Hematology"
+    unit: "pg"
+    aliases:
+      - "mch"
+      - "mean cell hemoglobin"
+      - "mean corpuscular hemoglobin"
+
+  mchc:
+    canonical_name: "Mean Corpuscular Hemoglobin Concentration"
+    loinc_code: "786-4"
+    category: "Hematology"
+    unit: "g/dL"
+    aliases:
+      - "mchc"
+      - "mean cell hemoglobin concentration"
+      - "mean corpuscular hemoglobin concentration"
+
+  rdw:
+    canonical_name: "Red Cell Distribution Width"
+    loinc_code: "788-0"
+    category: "Hematology"
+    unit: "%"
+    aliases:
+      - "rdw"
+      - "rdw-cv"
+      - "red cell distribution width"
+      - "rbc distribution width"
+
+  mpv:
+    canonical_name: "Mean Platelet Volume"
+    loinc_code: "32623-1"
+    category: "Hematology"
+    unit: "fL"
+    aliases:
+      - "mpv"
+      - "mean platelet volume"
+
+# =============================================================================
+# HEMATOLOGY - Differential Count
+# =============================================================================
+  neutrophils:
+    canonical_name: "Neutrophils"
+    loinc_code: "751-8"
+    category: "Hematology"
+    unit: "%"
+    aliases:
+      - "neutrophils"
+      - "neut"
+      - "neutrophil count"
+      - "neutrophils %"
+      - "polymorphs"
+      - "pmn"
+      - "segmented neutrophils"
+
+  lymphocytes:
+    canonical_name: "Lymphocytes"
+    loinc_code: "731-0"
+    category: "Hematology"
+    unit: "%"
+    aliases:
+      - "lymphocytes"
+      - "lymph"
+      - "lymphocyte count"
+      - "lymphocytes %"
+
+  monocytes:
+    canonical_name: "Monocytes"
+    loinc_code: "742-7"
+    category: "Hematology"
+    unit: "%"
+    aliases:
+      - "monocytes"
+      - "mono"
+      - "monocyte count"
+      - "monocytes %"
+
+  eosinophils:
+    canonical_name: "Eosinophils"
+    loinc_code: "713-8"
+    category: "Hematology"
+    unit: "%"
+    aliases:
+      - "eosinophils"
+      - "eos"
+      - "eosinophil count"
+      - "eosinophils %"
+
+  basophils:
+    canonical_name: "Basophils"
+    loinc_code: "704-7"
+    category: "Hematology"
+    unit: "%"
+    aliases:
+      - "basophils"
+      - "baso"
+      - "basophil count"
+      - "basophils %"
+
+  esr:
+    canonical_name: "Erythrocyte Sedimentation Rate"
+    loinc_code: "4537-7"
+    category: "Hematology"
+    unit: "mm/hr"
+    aliases:
+      - "esr"
+      - "sed rate"
+      - "sedimentation rate"
+      - "erythrocyte sedimentation rate"
+      - "westergren"
+
+# =============================================================================
+# METABOLIC PANEL - Glucose
+# =============================================================================
+  fasting_glucose:
+    canonical_name: "Fasting Blood Glucose"
+    loinc_code: "1558-6"
+    category: "Metabolic Panel"
+    unit: "mg/dL"
+    aliases:
+      - "fbs"
+      - "fasting glucose"
+      - "fasting blood sugar"
+      - "glucose fasting"
+      - "blood sugar fasting"
+      - "fbg"
+
+  random_glucose:
+    canonical_name: "Random Blood Glucose"
+    loinc_code: "2345-7"
+    category: "Metabolic Panel"
+    unit: "mg/dL"
+    aliases:
+      - "rbs"
+      - "random glucose"
+      - "random blood sugar"
+      - "glucose random"
+      - "blood glucose"
+      - "blood sugar"
+
+  postprandial_glucose:
+    canonical_name: "Postprandial Blood Glucose"
+    loinc_code: "1521-4"
+    category: "Metabolic Panel"
+    unit: "mg/dL"
+    aliases:
+      - "ppbs"
+      - "pp glucose"
+      - "postprandial glucose"
+      - "post meal glucose"
+      - "2 hour glucose"
+      - "pp blood sugar"
+
+  hba1c:
+    canonical_name: "Hemoglobin A1c"
+    loinc_code: "4548-4"
+    category: "Metabolic Panel"
+    unit: "%"
+    aliases:
+      - "hba1c"
+      - "a1c"
+      - "glycated hemoglobin"
+      - "glycosylated hemoglobin"
+      - "hemoglobin a1c"
+      - "hb a1c"
+
+# =============================================================================
+# LIPID PANEL
+# =============================================================================
+  total_cholesterol:
+    canonical_name: "Total Cholesterol"
+    loinc_code: "2093-3"
+    category: "Lipid Panel"
+    unit: "mg/dL"
+    aliases:
+      - "cholesterol"
+      - "total cholesterol"
+      - "cholesterol total"
+      - "serum cholesterol"
+      - "tc"
+
+  ldl_cholesterol:
+    canonical_name: "LDL Cholesterol"
+    loinc_code: "2089-1"
+    category: "Lipid Panel"
+    unit: "mg/dL"
+    aliases:
+      - "ldl"
+      - "ldl cholesterol"
+      - "ldl-c"
+      - "low density lipoprotein"
+      - "ldl direct"
+      - "bad cholesterol"
+
+  hdl_cholesterol:
+    canonical_name: "HDL Cholesterol"
+    loinc_code: "2085-9"
+    category: "Lipid Panel"
+    unit: "mg/dL"
+    aliases:
+      - "hdl"
+      - "hdl cholesterol"
+      - "hdl-c"
+      - "high density lipoprotein"
+      - "good cholesterol"
+
+  triglycerides:
+    canonical_name: "Triglycerides"
+    loinc_code: "2571-8"
+    category: "Lipid Panel"
+    unit: "mg/dL"
+    aliases:
+      - "tg"
+      - "triglycerides"
+      - "trigs"
+      - "triglyceride"
+      - "serum triglycerides"
+
+  vldl:
+    canonical_name: "VLDL Cholesterol"
+    loinc_code: "2091-7"
+    category: "Lipid Panel"
+    unit: "mg/dL"
+    aliases:
+      - "vldl"
+      - "vldl cholesterol"
+      - "vldl-c"
+      - "very low density lipoprotein"
+
+# =============================================================================
+# KIDNEY FUNCTION (RENAL PANEL)
+# =============================================================================
+  creatinine:
+    canonical_name: "Creatinine"
+    loinc_code: "2160-0"
+    category: "Renal Panel"
+    unit: "mg/dL"
+    aliases:
+      - "creatinine"
+      - "creat"
+      - "serum creatinine"
+      - "s. creatinine"
+      - "blood creatinine"
+
+  blood_urea_nitrogen:
+    canonical_name: "Blood Urea Nitrogen"
+    loinc_code: "3094-0"
+    category: "Renal Panel"
+    unit: "mg/dL"
+    aliases:
+      - "bun"
+      - "blood urea nitrogen"
+      - "urea nitrogen"
+      - "urea"
+      - "blood urea"
+      - "serum urea"
+
+  uric_acid:
+    canonical_name: "Uric Acid"
+    loinc_code: "3084-1"
+    category: "Renal Panel"
+    unit: "mg/dL"
+    aliases:
+      - "uric acid"
+      - "serum uric acid"
+      - "urate"
+
+  egfr:
+    canonical_name: "Estimated GFR"
+    loinc_code: "33914-3"
+    category: "Renal Panel"
+    unit: "mL/min/1.73m2"
+    aliases:
+      - "egfr"
+      - "gfr"
+      - "estimated gfr"
+      - "glomerular filtration rate"
+
+# =============================================================================
+# LIVER FUNCTION (HEPATIC PANEL)
+# =============================================================================
+  alt:
+    canonical_name: "Alanine Aminotransferase"
+    loinc_code: "1742-6"
+    category: "Liver Panel"
+    unit: "U/L"
+    aliases:
+      - "alt"
+      - "sgpt"
+      - "alanine aminotransferase"
+      - "alanine transaminase"
+      - "alt/sgpt"
+
+  ast:
+    canonical_name: "Aspartate Aminotransferase"
+    loinc_code: "1920-8"
+    category: "Liver Panel"
+    unit: "U/L"
+    aliases:
+      - "ast"
+      - "sgot"
+      - "aspartate aminotransferase"
+      - "aspartate transaminase"
+      - "ast/sgot"
+
+  alp:
+    canonical_name: "Alkaline Phosphatase"
+    loinc_code: "6768-6"
+    category: "Liver Panel"
+    unit: "U/L"
+    aliases:
+      - "alp"
+      - "alkaline phosphatase"
+      - "alk phos"
+      - "alkp"
+
+  ggt:
+    canonical_name: "Gamma-Glutamyl Transferase"
+    loinc_code: "2324-2"
+    category: "Liver Panel"
+    unit: "U/L"
+    aliases:
+      - "ggt"
+      - "gamma gt"
+      - "gamma-glutamyl transferase"
+      - "ggtp"
+
+  total_bilirubin:
+    canonical_name: "Total Bilirubin"
+    loinc_code: "1975-2"
+    category: "Liver Panel"
+    unit: "mg/dL"
+    aliases:
+      - "bilirubin"
+      - "total bilirubin"
+      - "bilirubin total"
+      - "t. bilirubin"
+      - "t bil"
+
+  direct_bilirubin:
+    canonical_name: "Direct Bilirubin"
+    loinc_code: "1968-7"
+    category: "Liver Panel"
+    unit: "mg/dL"
+    aliases:
+      - "direct bilirubin"
+      - "d. bilirubin"
+      - "conjugated bilirubin"
+      - "d bil"
+
+  indirect_bilirubin:
+    canonical_name: "Indirect Bilirubin"
+    loinc_code: "1971-1"
+    category: "Liver Panel"
+    unit: "mg/dL"
+    aliases:
+      - "indirect bilirubin"
+      - "unconjugated bilirubin"
+      - "i bil"
+
+  total_protein:
+    canonical_name: "Total Protein"
+    loinc_code: "2885-2"
+    category: "Liver Panel"
+    unit: "g/dL"
+    aliases:
+      - "total protein"
+      - "protein total"
+      - "serum protein"
+      - "tp"
+
+  albumin:
+    canonical_name: "Albumin"
+    loinc_code: "1751-7"
+    category: "Liver Panel"
+    unit: "g/dL"
+    aliases:
+      - "albumin"
+      - "alb"
+      - "serum albumin"
+
+  globulin:
+    canonical_name: "Globulin"
+    loinc_code: "2336-6"
+    category: "Liver Panel"
+    unit: "g/dL"
+    aliases:
+      - "globulin"
+      - "serum globulin"
+      - "glob"
+
+  ag_ratio:
+    canonical_name: "Albumin/Globulin Ratio"
+    loinc_code: "1759-0"
+    category: "Liver Panel"
+    unit: "ratio"
+    aliases:
+      - "a/g ratio"
+      - "ag ratio"
+      - "albumin globulin ratio"
+      - "a:g ratio"
+
+# =============================================================================
+# THYROID PANEL
+# =============================================================================
+  tsh:
+    canonical_name: "Thyroid Stimulating Hormone"
+    loinc_code: "3016-3"
+    category: "Thyroid Panel"
+    unit: "mIU/L"
+    aliases:
+      - "tsh"
+      - "thyroid stimulating hormone"
+      - "thyrotropin"
+      - "serum tsh"
+
+  free_t3:
+    canonical_name: "Free T3"
+    loinc_code: "3051-0"
+    category: "Thyroid Panel"
+    unit: "pg/mL"
+    aliases:
+      - "ft3"
+      - "free t3"
+      - "t3 free"
+      - "free triiodothyronine"
+
+  free_t4:
+    canonical_name: "Free T4"
+    loinc_code: "3024-7"
+    category: "Thyroid Panel"
+    unit: "ng/dL"
+    aliases:
+      - "ft4"
+      - "free t4"
+      - "t4 free"
+      - "free thyroxine"
+
+  total_t3:
+    canonical_name: "Total T3"
+    loinc_code: "3053-6"
+    category: "Thyroid Panel"
+    unit: "ng/dL"
+    aliases:
+      - "t3"
+      - "total t3"
+      - "triiodothyronine"
+
+  total_t4:
+    canonical_name: "Total T4"
+    loinc_code: "3026-2"
+    category: "Thyroid Panel"
+    unit: "ug/dL"
+    aliases:
+      - "t4"
+      - "total t4"
+      - "thyroxine"
+
+# =============================================================================
+# ELECTROLYTES
+# =============================================================================
+  sodium:
+    canonical_name: "Sodium"
+    loinc_code: "2951-2"
+    category: "Electrolytes"
+    unit: "mEq/L"
+    aliases:
+      - "sodium"
+      - "na"
+      - "na+"
+      - "serum sodium"
+
+  potassium:
+    canonical_name: "Potassium"
+    loinc_code: "2823-3"
+    category: "Electrolytes"
+    unit: "mEq/L"
+    aliases:
+      - "potassium"
+      - "k"
+      - "k+"
+      - "serum potassium"
+
+  chloride:
+    canonical_name: "Chloride"
+    loinc_code: "2075-0"
+    category: "Electrolytes"
+    unit: "mEq/L"
+    aliases:
+      - "chloride"
+      - "cl"
+      - "cl-"
+      - "serum chloride"
+
+  bicarbonate:
+    canonical_name: "Bicarbonate"
+    loinc_code: "1963-8"
+    category: "Electrolytes"
+    unit: "mEq/L"
+    aliases:
+      - "bicarbonate"
+      - "hco3"
+      - "co2"
+      - "carbon dioxide"
+      - "total co2"
+
+  calcium:
+    canonical_name: "Calcium"
+    loinc_code: "17861-6"
+    category: "Electrolytes"
+    unit: "mg/dL"
+    aliases:
+      - "calcium"
+      - "ca"
+      - "ca2+"
+      - "serum calcium"
+      - "total calcium"
+
+  phosphorus:
+    canonical_name: "Phosphorus"
+    loinc_code: "2777-1"
+    category: "Electrolytes"
+    unit: "mg/dL"
+    aliases:
+      - "phosphorus"
+      - "phosphate"
+      - "po4"
+      - "serum phosphorus"
+      - "inorganic phosphorus"
+
+  magnesium:
+    canonical_name: "Magnesium"
+    loinc_code: "2601-3"
+    category: "Electrolytes"
+    unit: "mg/dL"
+    aliases:
+      - "magnesium"
+      - "mg"
+      - "serum magnesium"
+
+# =============================================================================
+# IRON STUDIES
+# =============================================================================
+  iron:
+    canonical_name: "Serum Iron"
+    loinc_code: "2498-4"
+    category: "Iron Studies"
+    unit: "ug/dL"
+    aliases:
+      - "iron"
+      - "serum iron"
+      - "fe"
+      - "s. iron"
+
+  tibc:
+    canonical_name: "Total Iron Binding Capacity"
+    loinc_code: "2500-7"
+    category: "Iron Studies"
+    unit: "ug/dL"
+    aliases:
+      - "tibc"
+      - "total iron binding capacity"
+      - "iron binding capacity"
+
+  ferritin:
+    canonical_name: "Ferritin"
+    loinc_code: "2276-4"
+    category: "Iron Studies"
+    unit: "ng/mL"
+    aliases:
+      - "ferritin"
+      - "serum ferritin"
+      - "s. ferritin"
+
+  transferrin_saturation:
+    canonical_name: "Transferrin Saturation"
+    loinc_code: "2502-3"
+    category: "Iron Studies"
+    unit: "%"
+    aliases:
+      - "transferrin saturation"
+      - "tsat"
+      - "iron saturation"
+      - "% saturation"
+
+# =============================================================================
+# VITAMINS
+# =============================================================================
+  vitamin_d:
+    canonical_name: "Vitamin D, 25-Hydroxy"
+    loinc_code: "1989-3"
+    category: "Vitamins"
+    unit: "ng/mL"
+    aliases:
+      - "vitamin d"
+      - "vit d"
+      - "25-oh vitamin d"
+      - "25-hydroxy vitamin d"
+      - "vitamin d total"
+      - "25 hydroxy vitamin d"
+      - "cholecalciferol"
+
+  vitamin_b12:
+    canonical_name: "Vitamin B12"
+    loinc_code: "2132-9"
+    category: "Vitamins"
+    unit: "pg/mL"
+    aliases:
+      - "vitamin b12"
+      - "b12"
+      - "vit b12"
+      - "cobalamin"
+      - "cyanocobalamin"
+
+  folate:
+    canonical_name: "Folate"
+    loinc_code: "2284-8"
+    category: "Vitamins"
+    unit: "ng/mL"
+    aliases:
+      - "folate"
+      - "folic acid"
+      - "vitamin b9"
+      - "serum folate"
+
+# =============================================================================
+# CARDIAC MARKERS
+# =============================================================================
+  troponin_i:
+    canonical_name: "Troponin I"
+    loinc_code: "10839-9"
+    category: "Cardiac Markers"
+    unit: "ng/mL"
+    aliases:
+      - "troponin i"
+      - "trop i"
+      - "cardiac troponin i"
+      - "ctni"
+
+  troponin_t:
+    canonical_name: "Troponin T"
+    loinc_code: "6598-7"
+    category: "Cardiac Markers"
+    unit: "ng/mL"
+    aliases:
+      - "troponin t"
+      - "trop t"
+      - "cardiac troponin t"
+      - "ctnt"
+
+  ck_mb:
+    canonical_name: "CK-MB"
+    loinc_code: "13969-1"
+    category: "Cardiac Markers"
+    unit: "ng/mL"
+    aliases:
+      - "ck-mb"
+      - "ckmb"
+      - "creatine kinase mb"
+      - "ck mb"
+
+  bnp:
+    canonical_name: "B-type Natriuretic Peptide"
+    loinc_code: "42637-9"
+    category: "Cardiac Markers"
+    unit: "pg/mL"
+    aliases:
+      - "bnp"
+      - "brain natriuretic peptide"
+      - "b-type natriuretic peptide"
+      - "nt-probnp"
+
+# =============================================================================
+# COAGULATION
+# =============================================================================
+  pt:
+    canonical_name: "Prothrombin Time"
+    loinc_code: "5902-2"
+    category: "Coagulation"
+    unit: "seconds"
+    aliases:
+      - "pt"
+      - "prothrombin time"
+      - "pro time"
+
+  inr:
+    canonical_name: "International Normalized Ratio"
+    loinc_code: "6301-6"
+    category: "Coagulation"
+    unit: "ratio"
+    aliases:
+      - "inr"
+      - "pt/inr"
+      - "international normalized ratio"
+
+  aptt:
+    canonical_name: "Activated Partial Thromboplastin Time"
+    loinc_code: "3173-2"
+    category: "Coagulation"
+    unit: "seconds"
+    aliases:
+      - "aptt"
+      - "ptt"
+      - "activated partial thromboplastin time"
+      - "partial thromboplastin time"
+
+  fibrinogen:
+    canonical_name: "Fibrinogen"
+    loinc_code: "3255-7"
+    category: "Coagulation"
+    unit: "mg/dL"
+    aliases:
+      - "fibrinogen"
+      - "factor i"
+      - "plasma fibrinogen"
+
+  d_dimer:
+    canonical_name: "D-Dimer"
+    loinc_code: "48066-5"
+    category: "Coagulation"
+    unit: "ng/mL"
+    aliases:
+      - "d-dimer"
+      - "d dimer"
+      - "ddimer"
+      - "fibrin degradation products"
+
+# =============================================================================
+# URINALYSIS
+# =============================================================================
+  urine_ph:
+    canonical_name: "Urine pH"
+    loinc_code: "2756-5"
+    category: "Urinalysis"
+    unit: "pH"
+    aliases:
+      - "urine ph"
+      - "ph urine"
+      - "urinary ph"
+
+  urine_specific_gravity:
+    canonical_name: "Urine Specific Gravity"
+    loinc_code: "2965-2"
+    category: "Urinalysis"
+    unit: "ratio"
+    aliases:
+      - "specific gravity"
+      - "urine specific gravity"
+      - "sp. gravity"
+      - "sg"
+
+  urine_protein:
+    canonical_name: "Urine Protein"
+    loinc_code: "2888-6"
+    category: "Urinalysis"
+    unit: "mg/dL"
+    aliases:
+      - "urine protein"
+      - "protein urine"
+      - "urinary protein"
+      - "proteinuria"
+
+  urine_glucose:
+    canonical_name: "Urine Glucose"
+    loinc_code: "2350-7"
+    category: "Urinalysis"
+    unit: "mg/dL"
+    aliases:
+      - "urine glucose"
+      - "glucose urine"
+      - "urinary glucose"
+      - "glycosuria"
+
+  urine_ketones:
+    canonical_name: "Urine Ketones"
+    loinc_code: "2514-8"
+    category: "Urinalysis"
+    unit: "mg/dL"
+    aliases:
+      - "urine ketones"
+      - "ketones"
+      - "ketone bodies"
+      - "ketonuria"
+
+# =============================================================================
+# INFLAMMATORY MARKERS
+# =============================================================================
+  crp:
+    canonical_name: "C-Reactive Protein"
+    loinc_code: "1988-5"
+    category: "Inflammatory Markers"
+    unit: "mg/L"
+    aliases:
+      - "crp"
+      - "c-reactive protein"
+      - "c reactive protein"
+      - "hs-crp"
+      - "high sensitivity crp"
+
+  procalcitonin:
+    canonical_name: "Procalcitonin"
+    loinc_code: "33959-8"
+    category: "Inflammatory Markers"
+    unit: "ng/mL"
+    aliases:
+      - "procalcitonin"
+      - "pct"
+      - "pro-calcitonin"
+
+# =============================================================================
+# PANCREATIC
+# =============================================================================
+  amylase:
+    canonical_name: "Amylase"
+    loinc_code: "1798-8"
+    category: "Pancreatic"
+    unit: "U/L"
+    aliases:
+      - "amylase"
+      - "serum amylase"
+      - "s. amylase"
+
+  lipase:
+    canonical_name: "Lipase"
+    loinc_code: "3040-3"
+    category: "Pancreatic"
+    unit: "U/L"
+    aliases:
+      - "lipase"
+      - "serum lipase"
+      - "s. lipase"

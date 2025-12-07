@@ -1,0 +1,41 @@
+# Worker Dockerfile
+# RQ Worker for async document processing
+
+FROM python:3.11-slim
+
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONPATH=/app
+ENV OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES
+
+# Install system dependencies for OpenCV
+# Note: libgl1-mesa-glx was replaced with libgl1 in newer Debian
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libgl1 \
+    libglib2.0-0 \
+    libsm6 \
+    libxrender1 \
+    libxext6 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set working directory
+WORKDIR /app
+
+# Copy requirements first for better caching
+COPY requirements.txt .
+
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application code
+COPY backend ./backend
+COPY workers ./workers
+COPY config ./config
+COPY .env* ./
+
+# Create storage directories
+RUN mkdir -p storage/lab-reports
+
+# Run the worker
+CMD ["rq", "worker", "lab_reports", "--url", "redis://redis:6379/0", "--with-scheduler"]

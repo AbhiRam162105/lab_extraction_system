@@ -1,0 +1,58 @@
+# =============================================================================
+# Docker Ignore - Reduce build context size
+# =============================================================================
+
+# Virtual environment
+venv/
+.venv/
+env/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Logs
+*.log
+logs/
+
+# Database (will be created fresh in container)
+*.db
+*.sqlite
+*.sqlite3
+
+# Test results
+test_results/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Git
+.git/
+.gitignore
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+
+# Documentation artifacts
+.gemini/
+
+# Large uploaded files (will be mounted as volume)
+storage/lab-reports/*
+!storage/lab-reports/.gitkeep
+uploaded_image_*

@@ -1,0 +1,33 @@
+# Core dependencies
+fastapi
+uvicorn[standard]
+python-multipart
+sqlmodel
+rq
+redis
+pydantic
+pydantic-settings
+python-dotenv
+pyyaml
+requests
+
+# Gemini AI
+google-generativeai
+
+# Image processing
+pillow
+opencv-python-headless
+numpy
+scipy
+
+# Text matching for standardization
+rapidfuzz
+sentence-transformers
+
+# Frontend
+streamlit
+pandas
+plotly
+watchdog
+openpyxl
+
