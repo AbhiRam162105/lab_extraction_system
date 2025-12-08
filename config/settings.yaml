@@ -1,20 +1,44 @@
+# =============================================================================
+# Lab Report Extraction System - Configuration
+# =============================================================================
+# Values can reference environment variables using ${VAR_NAME} or ${VAR_NAME:-default}
+# Environment variables are loaded from .env file
+
 processing:
-  workers: 10
-  batch_size: 100
-  max_retries: 3
-  timeout: 300
+  max_retries: ${PROCESSING__MAX_RETRIES:-3}
+  timeout: ${PROCESSING__TIMEOUT:-300}
+  batch_size: ${PROCESSING__BATCH_SIZE:-15}
+  max_concurrent_workers: ${PROCESSING__MAX_CONCURRENT_WORKERS:-32}
+  enable_caching: ${PROCESSING__ENABLE_CACHING:-true}
+  cache_ttl_hours: ${PROCESSING__CACHE_TTL_HOURS:-24}
 
 storage:
-  type: "local"
-  bucket: "lab-reports"
-  base_path: "storage"
+  base_path: ${STORAGE__BASE_PATH:-storage}
+  bucket: ${STORAGE__BUCKET:-lab-reports}
 
 database:
-  url: "sqlite:///./lab_extraction.db"
+  url: ${DATABASE__URL:-sqlite:///./lab_extraction.db}
 
 gemini:
-  model: "gemma-3-27b-it"
-  rate_limit: 10
+  model: ${GEMINI__MODEL:-gemini-2.5-flash-lite}
+  rate_limit: ${GEMINI__RATE_LIMIT:-10}
+
+rate_limiting:
+  requests_per_minute: ${RATE_LIMITING__REQUESTS_PER_MINUTE:-15}
+  adaptive_backoff: ${RATE_LIMITING__ADAPTIVE_BACKOFF:-true}
+  backoff_factor: ${RATE_LIMITING__BACKOFF_FACTOR:-0.8}
+  recovery_threshold: ${RATE_LIMITING__RECOVERY_THRESHOLD:-10}
+
+preprocessing:
+  parallel_workers: ${PREPROCESSING__PARALLEL_WORKERS:-8}
+  quality_threshold: ${PREPROCESSING__QUALITY_THRESHOLD:-100}
+  max_dimension: ${PREPROCESSING__MAX_DIMENSION:-2048}
+  jpeg_quality: ${PREPROCESSING__JPEG_QUALITY:-85}
 
 redis:
-  url: "redis://localhost:6379/0"
+  url: ${REDIS__URL:-redis://localhost:6379/0}
+
+standardization:
+  fuzzy_threshold: ${STANDARDIZATION__FUZZY_THRESHOLD:-0.85}
+  llm_fallback: ${STANDARDIZATION__LLM_FALLBACK:-true}
+

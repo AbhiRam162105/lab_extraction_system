@@ -433,4 +433,175 @@ def get_test_definitions(session: Session = Depends(get_session)):
     }
 
 
+# =============================================================================
+# Batch Processing & Performance
+# =============================================================================
+
+@router.post("/batch-upload")
+async def batch_upload(
+    files: List[UploadFile] = File(...),
+    session: Session = Depends(get_session),
+    queue: Queue = Depends(get_queue),
+    priority: str = Query("normal", regex="^(high_priority|normal|batch)$")
+):
+    """
+    Upload and process multiple files as a batch.
+    
+    Returns a job_id that can be used to track progress.
+    """
+    import redis as redis_lib
+    
+    uploaded_docs = []
+    storage_path = Path(settings.storage.base_path) / settings.storage.bucket
+    storage_path.mkdir(parents=True, exist_ok=True)
+    
+    # Save all files
+    for file in files:
+        file_id = str(uuid.uuid4())
+        safe_filename = f"{file_id}_{file.filename}"
+        file_location = storage_path / safe_filename
+        
+        content = await file.read()
+        with open(file_location, "wb") as f:
+            f.write(content)
+        
+        doc = Document(
+            id=file_id,
+            filename=file.filename,
+            file_path=str(file_location),
+            content_type=file.content_type or "application/octet-stream",
+            status="queued"
+        )
+        session.add(doc)
+        uploaded_docs.append(doc)
+    
+    session.commit()
+    
+    # Get document IDs
+    document_ids = [doc.id for doc in uploaded_docs]
+    
+    # Create batch job
+    job_id = str(uuid.uuid4())
+    
+    # Enqueue batch processing task
+    try:
+        redis_client = redis_lib.from_url(settings.redis.url)
+        batch_queue = Queue(priority, connection=redis_client)
+        
+        batch_queue.enqueue(
+            'workers.extraction.optimized_worker.process_document_batch',
+            document_ids,
+            job_id,
+            job_id=job_id
+        )
+    except Exception as e:
+        # Fallback to individual processing
+        for doc in uploaded_docs:
+            queue.enqueue(
+                'workers.extraction.main.process_document',
+                doc.id,
+                job_id=doc.id
+            )
+        job_id = None
+    
+    return {
+        "job_id": job_id,
+        "documents": [
+            {"id": doc.id, "filename": doc.filename}
+            for doc in uploaded_docs
+        ],
+        "total": len(uploaded_docs),
+        "priority": priority,
+        "status": "queued"
+    }
+
+
+@router.get("/batch-status/{job_id}")
+def get_batch_status(job_id: str):
+    """
+    Get status of a batch processing job.
+    
+    Returns progress: processed/total, success/failed, cached.
+    """
+    try:
+        from workers.extraction.optimized_worker import get_batch_job_status
+        status = get_batch_job_status(job_id)
+        
+        if not status:
+            raise HTTPException(status_code=404, detail="Batch job not found")
+        
+        # Calculate progress percentage
+        total = int(status.get("total", 0))
+        processed = int(status.get("processed", 0))
+        progress = processed / total if total > 0 else 0
+        
+        return {
+            "job_id": job_id,
+            "status": status.get("status", "unknown"),
+            "total": total,
+            "processed": processed,
+            "successful": int(status.get("successful", 0)),
+            "failed": int(status.get("failed", 0)),
+            "cached": int(status.get("cached", 0)),
+            "progress": f"{progress:.1%}",
+            "started_at": status.get("started_at"),
+            "completed_at": status.get("completed_at")
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/cache-stats")
+def get_cache_stats():
+    """
+    Get cache statistics.
+    
+    Returns hit rate, size, and performance metrics.
+    """
+    try:
+        from workers.extraction.cache_manager import get_cache_manager
+        cache = get_cache_manager()
+        stats = cache.get_stats()
+        
+        return {
+            "cache_enabled": True,
+            "redis_available": cache.redis is not None,
+            **stats
+        }
+        
+    except Exception as e:
+        return {
+            "cache_enabled": False,
+            "error": str(e)
+        }
+
+
+@router.get("/rate-limit-stats")
+def get_rate_limit_stats():
+    """
+    Get rate limiter statistics.
+    
+    Returns current request count and throttling status.
+    """
+    try:
+        from workers.extraction.rate_limiter import get_rate_limiter
+        limiter = get_rate_limiter()
+        stats = limiter.get_stats()
+        
+        return {
+            "rate_limiting_enabled": True,
+            **stats
+        }
+        
+    except Exception as e:
+        return {
+            "rate_limiting_enabled": False,
+            "error": str(e)
+        }
+
+
 app.include_router(router, prefix="/api/v1")
+
