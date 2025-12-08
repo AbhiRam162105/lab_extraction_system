@@ -55,7 +55,7 @@ try:
                     title="How tests were standardized",
                     color_discrete_sequence=px.colors.qualitative.Set2
                 )
-                st.plotly_chart(fig, use_container_width=True)
+                st.plotly_chart(fig, width="stretch")
     else:
         st.info("No test statistics available yet. Upload some lab reports first!")
         
@@ -148,7 +148,7 @@ if view_mode == "Pivot Table":
                 # Display with horizontal scroll
                 st.dataframe(
                     df_display,
-                    use_container_width=True,
+                    width="stretch",
                     height=500
                 )
                 
@@ -252,7 +252,7 @@ else:
                 
                 st.dataframe(
                     df_display,
-                    use_container_width=True,
+                    width="stretch",
                     height=500
                 )
                 
@@ -309,7 +309,7 @@ with st.expander("📚 Standardized Test Definitions Reference"):
                         for t in tests
                     ])
                     
-                    st.dataframe(df, use_container_width=True, hide_index=True)
+                    st.dataframe(df, width="stretch", hide_index=True)
             else:
                 st.info("No test definitions loaded yet.")
                 

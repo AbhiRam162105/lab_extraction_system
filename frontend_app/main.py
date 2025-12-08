@@ -124,10 +124,17 @@ with tab2:
                 col4.metric("Failed", len(df[df['status'] == 'failed']))
                 
                 # Main Table
-                st.dataframe(df, use_container_width=True)
+                st.dataframe(df, width="stretch")
                 
-                # Detail View
-                selected_id = st.selectbox("Select Document ID for Details", df['id'].tolist())
+                # Detail View - Select by filename instead of ID
+                if 'filename' in df.columns:
+                    # Create a mapping of filename to id
+                    doc_options = {row['filename']: row['id'] for _, row in df.iterrows()}
+                    selected_filename = st.selectbox("Select Document for Details", list(doc_options.keys()))
+                    selected_id = doc_options.get(selected_filename)
+                else:
+                    selected_id = st.selectbox("Select Document ID for Details", df['id'].tolist())
+                
                 if selected_id:
                     res_response = requests.get(f"{API_URL}/results/{selected_id}")
                     if res_response.status_code == 200:
@@ -141,12 +148,28 @@ with tab2:
                             if detail_data.get("document", {}).get("file_path"):
                                 file_path = detail_data["document"]["file_path"]
                                 
-                                if os.path.exists(file_path):
-                                    st.image(file_path, caption=os.path.basename(file_path), use_container_width=True)
-                                else:
-                                    st.error(f"File not found on server: {file_path}")
+                                # Handle various path formats for Docker and local
+                                paths_to_try = [
+                                    file_path,                                              # Original path
+                                    f"/app/{file_path}",                                    # Docker absolute
+                                    file_path.replace("/app/", ""),                         # Remove Docker prefix  
+                                    f"/app/storage/lab-reports/{os.path.basename(file_path)}",  # Docker storage
+                                    f"storage/lab-reports/{os.path.basename(file_path)}",  # Local storage
+                                    os.path.join("/app/storage", os.path.basename(file_path)),
+                                ]
+                                
+                                file_found = False
+                                for try_path in paths_to_try:
+                                    if os.path.exists(try_path):
+                                        st.image(try_path, caption=os.path.basename(try_path), width="stretch")
+                                        file_found = True
+                                        break
+                                
+                                if not file_found:
+                                    st.warning(f"📁 File not available: {os.path.basename(file_path)}")
+                                    st.caption("The image may have been uploaded in a previous session.")
                             else:
-                                st.warning("Image not found")
+                                st.info("No image associated with this document")
 
                         with col_json:
                             st.markdown("### Extracted Data")
@@ -205,7 +228,7 @@ with tab2:
                                     results_df = pd.DataFrame(display_data)
                                     
                                     # Highlight LOINC codes
-                                    st.dataframe(results_df, use_container_width=True)
+                                    st.dataframe(results_df, width="stretch")
                                     
                                     # Patient Info
                                     if "patient_info" in data:
@@ -213,7 +236,7 @@ with tab2:
                                         patient = data["patient_info"]
                                         if patient:
                                             patient_df = pd.DataFrame([patient])
-                                            st.dataframe(patient_df, use_container_width=True)
+                                            st.dataframe(patient_df, width="stretch")
 
                                     # Review Alert
                                     if detail_data.get("extraction", {}).get("needs_review"):
@@ -234,7 +257,7 @@ with tab2:
                                         priority_cols = ['test_name', 'result', 'value', 'unit', 'units', 'reference_range', 'loinc_code']
                                         sorted_cols = [c for c in priority_cols if c in cols] + [c for c in cols if c not in priority_cols]
                                         
-                                        st.dataframe(flat_df[sorted_cols], use_container_width=True)
+                                        st.dataframe(flat_df[sorted_cols], width="stretch")
                                         # Also show raw JSON for checking
                                         with st.expander("View Raw JSON"):
                                             st.json(data)

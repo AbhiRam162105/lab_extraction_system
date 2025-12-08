@@ -29,6 +29,27 @@ services:
     restart: unless-stopped
 
   # ---------------------------------------------------------------------------
+  # PostgreSQL - Database
+  # ---------------------------------------------------------------------------
+  postgres:
+    image: postgres:15-alpine
+    container_name: lab_extraction_postgres
+    environment:
+      POSTGRES_DB: lab_extraction
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-labextract2024}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d lab_extraction" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
   # Backend - FastAPI API Server
   # ---------------------------------------------------------------------------
   backend:
@@ -42,14 +63,15 @@ services:
       - GEMINI__API_KEY=${GEMINI__API_KEY}
       - GEMINI__MODEL=${GEMINI__MODEL:-gemini-2.5-flash-lite}
       - REDIS__URL=redis://redis:6379/0
-      - DATABASE__URL=sqlite:///./lab_extraction.db
+      - DATABASE__URL=postgresql://postgres:${DB_PASSWORD:-labextract2024}@postgres:5432/lab_extraction
       - STANDARDIZATION__FUZZY_THRESHOLD=${STANDARDIZATION__FUZZY_THRESHOLD:-0.85}
       - STANDARDIZATION__LLM_FALLBACK=${STANDARDIZATION__LLM_FALLBACK:-true}
     volumes:
       - ./storage:/app/storage
-      - db_data:/app
     depends_on:
       redis:
+        condition: service_healthy
+      postgres:
         condition: service_healthy
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:6000/docs" ]
@@ -72,19 +94,26 @@ services:
       - GEMINI__MODEL=${GEMINI__MODEL:-gemini-2.5-flash-lite}
       - GEMINI__RATE_LIMIT=${GEMINI__RATE_LIMIT:-3}
       - REDIS__URL=redis://redis:6379/0
-      - DATABASE__URL=sqlite:///./lab_extraction.db
+      - DATABASE__URL=postgresql://postgres:${DB_PASSWORD:-labextract2024}@postgres:5432/lab_extraction
       - PROCESSING__MAX_RETRIES=${PROCESSING__MAX_RETRIES:-3}
       - STANDARDIZATION__FUZZY_THRESHOLD=${STANDARDIZATION__FUZZY_THRESHOLD:-0.85}
       - STANDARDIZATION__LLM_FALLBACK=${STANDARDIZATION__LLM_FALLBACK:-true}
     volumes:
       - ./storage:/app/storage
-      - db_data:/app
     depends_on:
       redis:
+        condition: service_healthy
+      postgres:
         condition: service_healthy
       backend:
         condition: service_healthy
     restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "python", "-c", "import redis; redis.from_url('redis://redis:6379/0').ping()" ]
+      interval: 30s
+      timeout: 10s
+      start_period: 10s
+      retries: 3
     # Scale workers for parallel processing
     deploy:
       replicas: 1
@@ -104,6 +133,8 @@ services:
       - "8501:8501"
     environment:
       - API_URL=http://backend:6000/api/v1
+    volumes:
+      - ./storage:/app/storage
     depends_on:
       backend:
         condition: service_healthy
@@ -121,7 +152,7 @@ services:
 volumes:
   redis_data:
     driver: local
-  db_data:
+  postgres_data:
     driver: local
 
 # =============================================================================
