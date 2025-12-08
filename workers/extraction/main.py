@@ -54,14 +54,22 @@ def process_document(document_id: str) -> None:
             logger.error(f"Document {document_id} not found")
             return
 
+        # Helper to update processing stage in real-time
+        def update_stage(stage: str):
+            doc.processing_stage = stage
+            session.add(doc)
+            session.commit()
+            logger.info(f"Document {document_id}: Stage -> {stage}")
+
         # Update status to processing
         doc.status = "processing"
-        session.add(doc)
-        session.commit()
+        update_stage("queued")
         
         try:
-            # Run extraction pipeline
+            # Run extraction pipeline with stage callbacks
+            update_stage("preprocessing")
             extraction_result = extract_lab_report(doc.file_path)
+            update_stage("saving")
             
             # Extract key fields from result
             data = extraction_result.data
@@ -113,8 +121,7 @@ def process_document(document_id: str) -> None:
             
             # Update document status
             doc.status = "completed" if extraction_result.success else "failed"
-            session.add(doc)
-            session.commit()
+            update_stage("completed" if extraction_result.success else "failed")
             
             logger.info(f"Successfully processed document {document_id} (status: {doc.status})")
             

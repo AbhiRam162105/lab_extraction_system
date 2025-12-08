@@ -20,6 +20,8 @@ pillow
 opencv-python-headless
 numpy
 scipy
+imagehash
+zstandard
 
 # Text matching for standardization
 rapidfuzz

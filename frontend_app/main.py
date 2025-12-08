@@ -123,7 +123,63 @@ with tab2:
                 col3.metric("Processing", len(df[df['status'] == 'processing']))
                 col4.metric("Failed", len(df[df['status'] == 'failed']))
                 
-                # Main Table
+                # Flagged Documents Section - Show illegible/low quality images
+                try:
+                    flagged_response = requests.get(f"{API_URL}/documents/flagged")
+                    if flagged_response.status_code == 200:
+                        flagged_docs = flagged_response.json()
+                        if flagged_docs:
+                            st.markdown("---")
+                            st.subheader("⚠️ Flagged for Review (Illegible Images)")
+                            st.caption("These documents have low quality or illegible images and need manual review")
+                            
+                            flagged_df = pd.DataFrame(flagged_docs)
+                            # Format the dataframe
+                            display_cols = ['filename', 'review_reason', 'confidence_score', 'upload_date', 'status']
+                            available_cols = [c for c in display_cols if c in flagged_df.columns]
+                            
+                            # Style the confidence score
+                            if 'confidence_score' in flagged_df.columns:
+                                flagged_df['confidence_score'] = flagged_df['confidence_score'].apply(
+                                    lambda x: f"{x:.1%}" if x else "N/A"
+                                )
+                            
+                            st.dataframe(
+                                flagged_df[available_cols],
+                                width="stretch",
+                                column_config={
+                                    "filename": st.column_config.TextColumn("Document"),
+                                    "review_reason": st.column_config.TextColumn("Review Reason"),
+                                    "confidence_score": st.column_config.TextColumn("Confidence"),
+                                    "upload_date": st.column_config.TextColumn("Uploaded"),
+                                    "status": st.column_config.TextColumn("Status")
+                                }
+                            )
+                            st.markdown("---")
+                except Exception as e:
+                    pass  # Silently fail if endpoint not available
+                
+                # Main Table with processing stage
+                # Add processing stage indicator for documents being processed
+                if 'processing_stage' in df.columns:
+                    def format_stage(row):
+                        if row['status'] == 'processing' and row.get('processing_stage'):
+                            stage = row['processing_stage']
+                            stage_icons = {
+                                'queued': '⏳ Queued',
+                                'preprocessing': '🔄 Preprocessing',
+                                'pass1': '🔍 Pass 1 (Vision)',
+                                'pass2': '📝 Pass 2 (Structure)',
+                                'pass3': '🏷️ Pass 3 (Standardize)',
+                                'saving': '💾 Saving',
+                                'completed': '✅ Completed',
+                                'failed': '❌ Failed'
+                            }
+                            return stage_icons.get(stage, stage)
+                        return row.get('processing_stage', '')
+                    
+                    df['Stage'] = df.apply(format_stage, axis=1)
+                
                 st.dataframe(df, width="stretch")
                 
                 # Detail View - Select by filename instead of ID

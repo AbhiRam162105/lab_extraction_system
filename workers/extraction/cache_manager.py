@@ -7,6 +7,9 @@ Two-tier caching system:
 
 Features:
 - SHA-256 hash of image file as cache key
+- pHash (perceptual hash) for duplicate/similar image detection
+- zstd compression for reduced storage
+- Partial result caching (prep, pass1, pass2, pass3)
 - Stores both raw extraction and standardized results
 - Cache hit/miss metrics
 - Automatic cache invalidation
@@ -18,9 +21,23 @@ import hashlib
 import logging
 import pickle
 from pathlib import Path
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List, Tuple
 from datetime import datetime, timedelta
 from dataclasses import dataclass, field
+
+# pHash and compression
+try:
+    import imagehash
+    from PIL import Image
+    PHASH_AVAILABLE = True
+except ImportError:
+    PHASH_AVAILABLE = False
+
+try:
+    import zstandard as zstd
+    ZSTD_AVAILABLE = True
+except ImportError:
+    ZSTD_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
 
@@ -30,10 +47,12 @@ class CacheConfig:
     """Cache configuration."""
     redis_enabled: bool = True
     disk_enabled: bool = True
+    compression_enabled: bool = ZSTD_AVAILABLE  # Use zstd compression
     redis_ttl_hours: int = 24
     disk_cache_dir: str = "storage/cache"
     max_disk_cache_size_mb: int = 5000  # 5GB
     hash_algorithm: str = "sha256"
+    phash_similarity_threshold: int = 5  # Max hamming distance for "similar" images
 
 
 @dataclass
@@ -127,6 +146,126 @@ class CacheManager:
         
         return hasher.hexdigest()
     
+    def get_perceptual_hash(self, image_path: str) -> Optional[str]:
+        """
+        Generate perceptual hash (pHash) for duplicate/similar detection.
+        
+        pHash is robust to minor changes like resizing, compression, etc.
+        Two images with similar content will have similar pHash values.
+        
+        Args:
+            image_path: Path to image file
+            
+        Returns:
+            Hex string of pHash, or None if pHash unavailable
+        """
+        if not PHASH_AVAILABLE:
+            logger.debug("pHash not available (imagehash not installed)")
+            return None
+        
+        try:
+            img = Image.open(image_path)
+            phash = imagehash.phash(img)
+            return str(phash)
+        except Exception as e:
+            logger.warning(f"Failed to compute pHash: {e}")
+            return None
+    
+    def find_similar_by_phash(self, phash: str, all_phashes: List[Tuple[str, str]]) -> List[Tuple[str, int]]:
+        """
+        Find documents with similar pHash values.
+        
+        Args:
+            phash: pHash to compare
+            all_phashes: List of (doc_id, phash) tuples
+            
+        Returns:
+            List of (doc_id, hamming_distance) for similar documents
+        """
+        if not PHASH_AVAILABLE or not phash:
+            return []
+        
+        similar = []
+        try:
+            query_hash = imagehash.hex_to_hash(phash)
+            for doc_id, other_phash in all_phashes:
+                if other_phash:
+                    other_hash = imagehash.hex_to_hash(other_phash)
+                    distance = query_hash - other_hash
+                    if distance <= self.config.phash_similarity_threshold:
+                        similar.append((doc_id, distance))
+        except Exception as e:
+            logger.warning(f"pHash comparison failed: {e}")
+        
+        return sorted(similar, key=lambda x: x[1])
+    
+    def cache_partial_result(
+        self,
+        image_hash: str,
+        stage: str,
+        result: Any,
+    ) -> None:
+        """
+        Cache intermediate result for a processing stage.
+        
+        Stages: 'prep', 'pass1', 'pass2', 'pass3'
+        
+        Args:
+            image_hash: SHA-256 hash of image
+            stage: Processing stage name
+            result: Result to cache
+        """
+        key = f"{stage}:{image_hash}"
+        
+        # Compress data if enabled
+        data = pickle.dumps(result)
+        if self.config.compression_enabled and ZSTD_AVAILABLE:
+            cctx = zstd.ZstdCompressor(level=3)
+            data = cctx.compress(data)
+        
+        # Store in Redis only (partial results are ephemeral)
+        if self.config.redis_enabled and self.redis:
+            try:
+                ttl = self.config.redis_ttl_hours * 3600
+                self.redis.setex(f"lab_partial:{key}", ttl, data)
+                logger.debug(f"Cached partial result: {stage}:{image_hash[:16]}...")
+            except Exception as e:
+                logger.warning(f"Failed to cache partial result: {e}")
+    
+    def get_partial_result(self, image_hash: str, stage: str) -> Optional[Any]:
+        """
+        Get cached intermediate result for a processing stage.
+        
+        Args:
+            image_hash: SHA-256 hash of image
+            stage: Processing stage name
+            
+        Returns:
+            Cached result or None
+        """
+        key = f"{stage}:{image_hash}"
+        
+        if self.config.redis_enabled and self.redis:
+            try:
+                data = self.redis.get(f"lab_partial:{key}")
+                if data:
+                    # Decompress if needed
+                    if self.config.compression_enabled and ZSTD_AVAILABLE:
+                        try:
+                            dctx = zstd.ZstdDecompressor()
+                            data = dctx.decompress(data)
+                        except:
+                            pass  # Data might not be compressed
+                    
+                    result = pickle.loads(data)
+                    logger.debug(f"Partial cache HIT: {stage}:{image_hash[:16]}...")
+                    return result
+            except Exception as e:
+                logger.warning(f"Failed to get partial result: {e}")
+        
+        return None
+
+
     def get_cached_result(self, image_hash: str) -> Optional[Dict[str, Any]]:
         """
         Get cached extraction result.

@@ -128,9 +128,18 @@ class GeminiExtractor:
             extraction_metadata['passes_completed'] = 1
             extraction_metadata['pass1_text_length'] = len(raw_text)
             
+            # Early termination: Skip Pass 2 if Pass 1 confidence is very high
+            early_termination = pass1_confidence >= 0.90
+            if early_termination:
+                logger.info(f"Early termination: Pass 1 confidence {pass1_confidence:.2f} >= 0.90, skipping refinement")
+                extraction_metadata['early_termination'] = True
+            
             # Pass 2: Structure + Validate with retry
             pass2_start = time.time()
-            structured_data, pass2_confidence, attempt = self._pass2_structure_validate(raw_text)
+            structured_data, pass2_confidence, attempt = self._pass2_structure_validate(
+                raw_text, 
+                skip_refinement=early_termination
+            )
             pass2_time = time.time() - pass2_start
             extraction_metadata['passes_completed'] = 2
             extraction_metadata['retry_attempts'] = attempt
@@ -297,7 +306,8 @@ class GeminiExtractor:
     
     def _pass2_structure_validate(
         self,
-        raw_text: str
+        raw_text: str,
+        skip_refinement: bool = False
     ) -> Tuple[Dict[str, Any], float, int]:
         """
         Pass 2: Convert raw text to structured JSON with validation.
@@ -306,6 +316,7 @@ class GeminiExtractor:
         
         Args:
             raw_text: Raw extracted text from Pass 1
+            skip_refinement: If True, only do 1 attempt (early termination)
             
         Returns:
             Tuple of (structured_data, confidence, attempts)
@@ -313,9 +324,12 @@ class GeminiExtractor:
         best_result = None
         best_confidence = 0.0
         
-        for attempt in range(self.max_retries):
+        # Reduce retries for early termination
+        max_attempts = 1 if skip_refinement else self.max_retries
+        
+        for attempt in range(max_attempts):
             try:
-                logger.info(f"Pass 2, attempt {attempt + 1}/{self.max_retries}")
+                logger.info(f"Pass 2, attempt {attempt + 1}/{max_attempts}{' (early termination)' if skip_refinement else ''}")
                 
                 prompt = get_refinement_prompt(raw_text, attempt)
                 response = self.model.generate_content(prompt)

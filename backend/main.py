@@ -157,6 +157,30 @@ def get_documents(session: Session = Depends(get_session)):
     return docs
 
 
+@router.get("/documents/flagged")
+def get_flagged_documents(session: Session = Depends(get_session)):
+    """Get documents flagged for review due to illegible/low quality images."""
+    # Join Document with ExtractionResult to find needs_review=True
+    flagged = session.exec(
+        select(Document, ExtractionResult)
+        .join(ExtractionResult, Document.id == ExtractionResult.document_id)
+        .where(ExtractionResult.needs_review == True)
+        .order_by(Document.upload_date.desc())
+    ).all()
+    
+    return [
+        {
+            "id": doc.id,
+            "filename": doc.filename,
+            "upload_date": doc.upload_date.isoformat(),
+            "status": doc.status,
+            "review_reason": result.review_reason,
+            "confidence_score": result.confidence_score
+        }
+        for doc, result in flagged
+    ]
+
+
 @router.get("/results/{document_id}")
 def get_results(document_id: str, session: Session = Depends(get_session)):
     doc = session.get(Document, document_id)

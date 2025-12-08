@@ -20,7 +20,7 @@ database:
   url: ${DATABASE__URL:-sqlite:///./lab_extraction.db}
 
 gemini:
-  model: ${GEMINI__MODEL:-gemini-2.5-flash-lite}
+  model: ${GEMINI__MODEL:-gemma-3-27b}
   rate_limit: ${GEMINI__RATE_LIMIT:-10}
 
 rate_limiting:

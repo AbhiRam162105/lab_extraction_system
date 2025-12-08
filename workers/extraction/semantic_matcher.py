@@ -98,7 +98,7 @@ class SemanticMatcher:
         )
     
     def _load_model(self) -> bool:
-        """Lazy load the embedding model and compute test embeddings."""
+        """Lazy load the embedding model and compute test embeddings with Redis cache."""
         if not EMBEDDINGS_AVAILABLE:
             logger.warning("sentence-transformers not available, semantic matching disabled")
             return False
@@ -107,17 +107,47 @@ class SemanticMatcher:
             return True
         
         try:
+            # Try to load embeddings from Redis cache first
+            redis_client = None
+            cached_embeddings = None
+            cache_key = f"semantic_embeddings:{len(self.canonical_names)}"
+            
+            try:
+                import redis
+                import pickle
+                redis_client = redis.from_url(settings.redis.url)
+                cached_data = redis_client.get(cache_key)
+                if cached_data:
+                    cached_embeddings = pickle.loads(cached_data)
+                    logger.info("Loaded embeddings from Redis cache")
+            except Exception as e:
+                logger.debug(f"Redis cache not available: {e}")
+            
             logger.info(f"Loading embedding model: {self.MODEL_NAME}")
             self._model = SentenceTransformer(self.MODEL_NAME)
             
-            # Pre-compute embeddings for all canonical names
-            self._embeddings = self._model.encode(
-                self.canonical_names,
-                convert_to_numpy=True,
-                normalize_embeddings=True
-            )
+            if cached_embeddings is not None:
+                self._embeddings = cached_embeddings
+            else:
+                # Pre-compute embeddings for all canonical names
+                logger.info(f"Computing embeddings for {len(self.canonical_names)} tests...")
+                self._embeddings = self._model.encode(
+                    self.canonical_names,
+                    convert_to_numpy=True,
+                    normalize_embeddings=True,
+                    batch_size=32  # Batch encode for efficiency
+                )
+                
+                # Cache embeddings in Redis (expires in 24 hours)
+                if redis_client:
+                    try:
+                        import pickle
+                        redis_client.setex(cache_key, 86400, pickle.dumps(self._embeddings))
+                        logger.info("Cached embeddings in Redis")
+                    except Exception as e:
+                        logger.debug(f"Failed to cache embeddings: {e}")
             
-            logger.info(f"Computed embeddings for {len(self.canonical_names)} tests")
+            logger.info(f"Embeddings ready for {len(self.canonical_names)} tests")
             return True
             
         except Exception as e:
@@ -214,6 +244,13 @@ class SemanticMatcher:
             
             # Compute cosine similarity (embeddings are normalized)
             similarities = np.dot(self._embeddings, query_embedding)
+            
+            # EARLY EXIT: If we find a very high match, return immediately
+            max_idx = np.argmax(similarities)
+            max_score = float(similarities[max_idx])
+            if max_score >= 0.95:  # Very high confidence - skip full sort
+                logger.debug(f"Early exit: found high-confidence match ({max_score:.2f})")
+                return [(self.canonical_names[max_idx], max_score)]
             
             # Get top-k indices
             top_indices = np.argsort(similarities)[::-1][:top_k]

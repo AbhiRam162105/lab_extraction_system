@@ -250,7 +250,7 @@ All configuration is managed via environment variables. Copy `.env.example` to `
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `GEMINI__MODEL` | Gemini model to use | `gemini-2.5-flash-lite` |
+| `GEMINI__MODEL` | Gemini model to use | `gemma-3-27b-it` |
 | `GEMINI__RATE_LIMIT` | Requests per minute | `15` |
 | `DATABASE__URL` | Database connection string | PostgreSQL for Docker |
 | `REDIS__URL` | Redis connection string | `redis://redis:6379/0` |

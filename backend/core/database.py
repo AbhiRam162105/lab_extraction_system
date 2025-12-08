@@ -18,13 +18,14 @@ def get_engine():
         )
     else:
         # PostgreSQL: use connection pooling for concurrent access
+        # Optimized for 32 workers with larger pool
         return create_engine(
             db_url,
             echo=False,
             poolclass=QueuePool,
-            pool_size=5,           # Connections in pool
-            max_overflow=10,       # Extra connections when pool exhausted
-            pool_timeout=30,       # Seconds to wait for connection
+            pool_size=16,          # Increased from 5 for 32 workers
+            max_overflow=16,       # Extra connections when pool exhausted
+            pool_timeout=10,       # Reduced from 30s for faster failure
             pool_recycle=1800,     # Recycle connections after 30 min
             pool_pre_ping=True     # Verify connection before use
         )

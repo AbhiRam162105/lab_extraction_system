@@ -9,8 +9,10 @@ class Document(SQLModel, table=True):
     filename: str
     upload_date: datetime = Field(default_factory=datetime.utcnow)
     status: str = Field(default="pending")  # pending, processing, completed, failed
+    processing_stage: Optional[str] = Field(default=None)  # queued, preprocessing, pass1, pass2, pass3, saving, completed
     file_path: str
     content_type: str
+    phash: Optional[str] = Field(default=None, index=True)  # Perceptual hash for duplicate detection
 
 
 class ExtractionResult(SQLModel, table=True):
