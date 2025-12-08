@@ -87,13 +87,18 @@ def process_document(document_id: str) -> None:
                 if not review_reason:
                     review_reason = data.get('error', 'Unknown error')
 
-            # Create extraction result record
+            # Create extraction result record with timing
             result = ExtractionResult(
                 document_id=document_id,
                 extracted_data=data,
                 confidence_score=confidence,
                 needs_review=needs_review,
-                review_reason=review_reason
+                review_reason=review_reason,
+                preprocessing_time=extraction_result.preprocessing_time,
+                pass1_time=extraction_result.pass1_time,
+                pass2_time=extraction_result.pass2_time,
+                pass3_time=extraction_result.pass3_time,
+                total_time=extraction_result.total_time
             )
             session.add(result)
             
@@ -190,6 +195,32 @@ def _save_patient_tests(
                     if definition:
                         test_definition_id = definition.id
             
+            # Parse value to determine type
+            value_str = str(result.get('value', ''))
+            value_type = result.get('value_type', 'unknown')
+            numeric_value = None
+            text_value = None
+            
+            # Try to parse as numeric
+            try:
+                # Handle common number formats
+                clean_val = value_str.replace(',', '').replace(' ', '').strip()
+                # Remove common suffixes like [H], [L], etc.
+                import re
+                clean_val = re.sub(r'\s*\[.*?\]\s*$', '', clean_val)
+                numeric_value = float(clean_val)
+                if value_type == 'unknown':
+                    value_type = 'numeric'
+            except (ValueError, TypeError):
+                # Not a pure number - check if it's text or mixed
+                if value_type == 'unknown':
+                    # Check if contains any digits
+                    if any(c.isdigit() for c in value_str):
+                        value_type = 'mixed'
+                    else:
+                        value_type = 'text'
+                text_value = value_str
+            
             # Create PatientTest record
             patient_test = PatientTest(
                 document_id=document_id,
@@ -198,12 +229,16 @@ def _save_patient_tests(
                 patient_id=patient_id,
                 original_test_name=result.get('original_name', original_name),
                 standardized_test_name=result.get('test_name') if is_standardized else None,
-                value=str(result.get('value', '')),
+                value=value_str,
+                numeric_value=numeric_value,
+                text_value=text_value,
+                value_type=value_type,
                 unit=result.get('unit'),
                 reference_range=result.get('reference_range'),
                 flag=result.get('flag'),
                 category=result.get('category'),
                 loinc_code=result.get('loinc_code'),
+                method=result.get('test_method'),
                 standardization_confidence=std_info.get('confidence', 0.0),
                 match_type=std_info.get('match_type'),
                 test_date=test_date

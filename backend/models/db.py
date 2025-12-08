@@ -21,6 +21,14 @@ class ExtractionResult(SQLModel, table=True):
     confidence_score: float = 0.0
     needs_review: bool = Field(default=False)
     review_reason: Optional[str] = Field(default=None)
+    
+    # Processing timing (in seconds)
+    preprocessing_time: Optional[float] = Field(default=None)  # Image preprocessing
+    pass1_time: Optional[float] = Field(default=None)  # Vision extraction
+    pass2_time: Optional[float] = Field(default=None)  # Structure + validation
+    pass3_time: Optional[float] = Field(default=None)  # Standardization
+    total_time: Optional[float] = Field(default=None)  # Total processing time
+    
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 
@@ -74,12 +82,16 @@ class PatientTest(SQLModel, table=True):
     # Test details
     original_test_name: str  # Name as written in the original report
     standardized_test_name: Optional[str] = Field(default=None, index=True)  # Canonical name
-    value: str
+    value: str  # Original value string
+    numeric_value: Optional[float] = Field(default=None)  # Parsed numeric value
+    text_value: Optional[str] = Field(default=None)  # Text/qualitative value
+    value_type: str = Field(default="unknown")  # "numeric", "text", "mixed", "unknown"
     unit: Optional[str] = Field(default=None)
     reference_range: Optional[str] = Field(default=None)
     flag: Optional[str] = Field(default=None)  # H/L/N
     category: Optional[str] = Field(default=None, index=True)
     loinc_code: Optional[str] = Field(default=None)
+    method: Optional[str] = Field(default=None)  # Test method (e.g., "Immunoturbidimetric")
     
     # Standardization metadata
     standardization_confidence: float = Field(default=0.0)

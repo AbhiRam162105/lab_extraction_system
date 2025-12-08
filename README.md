@@ -1,4 +1,4 @@
-# 🧬 Enterprise Lab Report Extraction System
+# Enterprise Lab Report Extraction System
 
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-green.svg)](https://fastapi.tiangolo.com/)
@@ -9,7 +9,7 @@ An enterprise-grade AI-powered system for extracting, standardizing, and managin
 
 ---
 
-## 📋 Table of Contents
+## Table of Contents
 
 - [Features](#-features)
 - [Architecture](#-architecture)
@@ -23,34 +23,34 @@ An enterprise-grade AI-powered system for extracting, standardizing, and managin
 
 ---
 
-## ✨ Features
+## Features
 
-### 🔍 3-Pass Extraction Pipeline
+### 3-Pass Extraction Pipeline
 | Pass | Function | Technology |
 |------|----------|------------|
 | **Pass 1** | Vision extraction with multi-prompt retry | Gemini Vision API |
 | **Pass 2** | Structured JSON conversion with validation | Schema validation |
 | **Pass 3** | Test name standardization with LOINC codes | Fuzzy matching + LLM |
 
-### 🎯 Intelligent Processing
+### Intelligent Processing
 - **Multi-prompt retry strategy** for difficult documents
 - **Confidence-based validation** with automatic flagging for review
 - **Enhanced image preprocessing** (deskewing, denoising, contrast enhancement)
 - **Adaptive rate limiting** to prevent API throttling
 
-### 📊 Test Name Standardization
+### Test Name Standardization
 - **100+ pre-mapped** common lab tests with LOINC codes
 - **Fuzzy matching** (RapidFuzz) for alias recognition
 - **Semantic matching** using sentence transformers
 - **LLM fallback** for unknown tests
 
-### ⚡ Performance Optimizations
+### Performance Optimizations
 - **Async batch processing** for high throughput
 - **Two-tier caching** (Redis + disk) to reduce API calls
 - **Connection pooling** for PostgreSQL
 - **Horizontal scaling** with multiple workers
 
-### 🐳 Production-Ready
+### Production-Ready
 - **Docker Compose** orchestration
 - **PostgreSQL** for concurrent multi-writer safety
 - **Redis** for job queuing and caching
@@ -59,54 +59,54 @@ An enterprise-grade AI-powered system for extracting, standardizing, and managin
 
 ---
 
-## 🏗 Architecture
+## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                         Streamlit Frontend                               │
-│                        (http://localhost:8501)                          │
-└─────────────────────────────────┬───────────────────────────────────────┘
-                                  │ HTTP
-                                  ▼
-┌─────────────────────────────────────────────────────────────────────────┐
-│                          FastAPI Backend                                 │
-│                        (http://localhost:6000)                          │
-│  ┌──────────────┐  ┌──────────────┐  ┌────────────────────────────────┐ │
-│  │   Upload     │  │   Results    │  │        Queue Jobs              │ │
-│  │   Endpoint   │  │   Endpoint   │  │     (Redis Queue)              │ │
-│  └──────────────┘  └──────────────┘  └────────────────────────────────┘ │
-└─────────────────────────────────┬───────────────────────────────────────┘
-                                  │
-          ┌───────────────────────┼───────────────────────┐
-          ▼                       ▼                       ▼
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│  RQ Worker 1    │    │  RQ Worker 2    │    │  RQ Worker 3    │
-│  (lab_reports)  │    │    (batch)      │    │ (high_priority) │
-└────────┬────────┘    └────────┬────────┘    └────────┬────────┘
-         │                      │                      │
-         └──────────────────────┼──────────────────────┘
-                                │
-                                ▼
-         ┌──────────────────────────────────────────────┐
-         │           3-Pass Extraction Pipeline          │
-         │  ┌────────────┐ ┌────────────┐ ┌───────────┐ │
-         │  │ Preprocess │→│  Gemini    │→│ Standardize│ │
-         │  │   Image    │ │  Vision    │ │   Tests   │ │
-         │  └────────────┘ └────────────┘ └───────────┘ │
-         └──────────────────────────────────────────────┘
-                                │
-          ┌─────────────────────┴─────────────────────┐
-          ▼                                           ▼
-┌─────────────────────┐                 ┌─────────────────────┐
-│     PostgreSQL      │                 │       Redis         │
-│   (lab_extraction)  │                 │  (Cache + Queue)    │
-│    Port: 5432       │                 │    Port: 6379       │
-└─────────────────────┘                 └─────────────────────┘
+
+ Streamlit Frontend 
+ (http://localhost:8501) 
+
+ HTTP
+ 
+
+ FastAPI Backend 
+ (http://localhost:6000) 
+ 
+ Upload Results Queue Jobs 
+ Endpoint Endpoint (Redis Queue) 
+ 
+
+ 
+ 
+ 
+ 
+ RQ Worker 1 RQ Worker 2 RQ Worker 3 
+ (lab_reports) (batch) (high_priority) 
+ 
+ 
+ 
+ 
+ 
+ 
+ 3-Pass Extraction Pipeline 
+ 
+ Preprocess → Gemini → Standardize 
+ Image Vision Tests 
+ 
+ 
+ 
+ 
+ 
+ 
+ PostgreSQL Redis 
+ (lab_extraction) (Cache + Queue) 
+ Port: 5432 Port: 6379 
+ 
 ```
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 
@@ -145,7 +145,7 @@ docker-compose -f docker-compose.optimized.yaml up --build
 ```bash
 # 1. Setup virtual environment
 python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+source venv/bin/activate # On Windows: venv\Scripts\activate
 
 # 2. Install dependencies
 pip install -r requirements.txt
@@ -164,77 +164,77 @@ chmod +x start.sh
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 lab_extraction_system/
-│
-├── 📂 backend/                    # FastAPI Backend Application
-│   ├── 📂 api/                    # API route handlers
-│   ├── 📂 core/                   # Core configuration
-│   │   ├── config.py              # Settings management (Pydantic)
-│   │   ├── database.py            # SQLAlchemy/SQLModel setup
-│   │   └── queue.py               # Redis queue connection
-│   ├── 📂 models/                 # Database models
-│   │   └── document.py            # Document & Extraction models
-│   ├── 📂 services/               # Business logic services
-│   └── main.py                    # FastAPI application entry point
-│
-├── 📂 workers/                    # Background Processing Workers
-│   ├── 📂 extraction/             # Extraction pipeline
-│   │   ├── __init__.py            # Package exports
-│   │   ├── main.py                # Document processor entry
-│   │   ├── gemini.py              # 3-pass Gemini extraction pipeline
-│   │   ├── preprocessing.py       # Image preprocessing (deskew, denoise)
-│   │   ├── fast_preprocessing.py  # Optimized parallel preprocessing
-│   │   ├── prompts.py             # Multi-prompt extraction strategies
-│   │   ├── standardizer.py        # Test name standardization
-│   │   ├── semantic_matcher.py    # Sentence transformer matching
-│   │   ├── batch_processor.py     # Async batch processing
-│   │   ├── cache_manager.py       # Two-tier caching (Redis + disk)
-│   │   ├── rate_limiter.py        # Adaptive rate limiting
-│   │   └── optimized_worker.py    # Enhanced RQ worker
-│   ├── 📂 queue/                  # Queue management
-│   └── 📂 tasks/                  # Task definitions
-│
-├── 📂 frontend_app/               # Streamlit Frontend
-│   ├── main.py                    # Main dashboard UI
-│   └── 📂 pages/                  # Multi-page app
-│       └── 1_📊_Global_Tests.py   # Global test analysis page
-│
-├── 📂 config/                     # Configuration Files
-│   ├── settings.yaml              # Application settings
-│   └── test_mappings.yaml         # Lab test → LOINC mappings (100+)
-│
-├── 📂 storage/                    # File Storage
-│   └── 📂 lab-reports/            # Uploaded lab report images
-│
-├── 📂 scripts/                    # Utility scripts
-│
-├── 🐳 Docker Files
-│   ├── docker-compose.yaml        # Standard deployment
-│   ├── docker-compose.optimized.yaml  # Production with 3 workers
-│   ├── Dockerfile.backend         # Backend image
-│   ├── Dockerfile.worker          # Worker image
-│   └── Dockerfile.frontend        # Frontend image
-│
-├── 📄 Configuration
-│   ├── .env.example               # Environment template
-│   ├── .env                       # Local environment (gitignored)
-│   ├── requirements.txt           # Python dependencies
-│   └── .gitignore                 # Git ignore rules
-│
-├── 📄 Documentation
-│   └── README.md                  # This file
-│
-└── 🔧 Scripts
-    ├── start.sh                   # Local development startup
-    └── wait_for_service.py        # Service readiness checker
+
+ backend/ # FastAPI Backend Application
+ api/ # API route handlers
+ core/ # Core configuration
+ config.py # Settings management (Pydantic)
+ database.py # SQLAlchemy/SQLModel setup
+ queue.py # Redis queue connection
+ models/ # Database models
+ document.py # Document & Extraction models
+ services/ # Business logic services
+ main.py # FastAPI application entry point
+
+ workers/ # Background Processing Workers
+ extraction/ # Extraction pipeline
+ __init__.py # Package exports
+ main.py # Document processor entry
+ gemini.py # 3-pass Gemini extraction pipeline
+ preprocessing.py # Image preprocessing (deskew, denoise)
+ fast_preprocessing.py # Optimized parallel preprocessing
+ prompts.py # Multi-prompt extraction strategies
+ standardizer.py # Test name standardization
+ semantic_matcher.py # Sentence transformer matching
+ batch_processor.py # Async batch processing
+ cache_manager.py # Two-tier caching (Redis + disk)
+ rate_limiter.py # Adaptive rate limiting
+ optimized_worker.py # Enhanced RQ worker
+ queue/ # Queue management
+ tasks/ # Task definitions
+
+ frontend_app/ # Streamlit Frontend
+ main.py # Main dashboard UI
+ pages/ # Multi-page app
+ 1__Global_Tests.py # Global test analysis page
+
+ config/ # Configuration Files
+ settings.yaml # Application settings
+ test_mappings.yaml # Lab test → LOINC mappings (100+)
+
+ storage/ # File Storage
+ lab-reports/ # Uploaded lab report images
+
+ scripts/ # Utility scripts
+
+ Docker Files
+ docker-compose.yaml # Standard deployment
+ docker-compose.optimized.yaml # Production with 3 workers
+ Dockerfile.backend # Backend image
+ Dockerfile.worker # Worker image
+ Dockerfile.frontend # Frontend image
+
+ Configuration
+ .env.example # Environment template
+ .env # Local environment (gitignored)
+ requirements.txt # Python dependencies
+ .gitignore # Git ignore rules
+
+ Documentation
+ README.md # This file
+
+ Scripts
+ start.sh # Local development startup
+ wait_for_service.py # Service readiness checker
 ```
 
 ---
 
-## ⚙️ Configuration
+## Configuration
 
 ### Environment Variables
 
@@ -273,7 +273,7 @@ All configuration is managed via environment variables. Copy `.env.example` to `
 
 ---
 
-## 📡 API Reference
+## API Reference
 
 ### Base URL
 - **Development**: `http://localhost:6000/api/v1`
@@ -294,7 +294,7 @@ All configuration is managed via environment variables. Copy `.env.example` to `
 
 ```bash
 curl -X POST "http://localhost:6000/api/v1/upload" \
-  -F "files=@lab_report.pdf"
+ -F "files=@lab_report.pdf"
 ```
 
 ### Example: Get Results
@@ -307,43 +307,43 @@ curl "http://localhost:6000/api/v1/results/{document_id}"
 
 ```json
 {
-  "lab_results": [
-    {
-      "test_name": "Hemoglobin",
-      "original_name": "Hb",
-      "value": "14.5",
-      "unit": "g/dL",
-      "reference_range": "12.0-16.0",
-      "category": "Hematology",
-      "loinc_code": "718-7",
-      "standardization": {
-        "is_standardized": true,
-        "confidence": 1.0,
-        "match_type": "exact"
-      }
-    }
-  ],
-  "patient_info": {
-    "name": "John Doe",
-    "patient_id": "12345",
-    "age": "45",
-    "gender": "M"
-  },
-  "metadata": {
-    "confidence_score": 0.92,
-    "needs_review": false,
-    "total_tests_extracted": 15,
-    "standardization": {
-      "standardized_count": 14,
-      "standardization_rate": 0.93
-    }
-  }
+ "lab_results": [
+ {
+ "test_name": "Hemoglobin",
+ "original_name": "Hb",
+ "value": "14.5",
+ "unit": "g/dL",
+ "reference_range": "12.0-16.0",
+ "category": "Hematology",
+ "loinc_code": "718-7",
+ "standardization": {
+ "is_standardized": true,
+ "confidence": 1.0,
+ "match_type": "exact"
+ }
+ }
+ ],
+ "patient_info": {
+ "name": "John Doe",
+ "patient_id": "12345",
+ "age": "45",
+ "gender": "M"
+ },
+ "metadata": {
+ "confidence_score": 0.92,
+ "needs_review": false,
+ "total_tests_extracted": 15,
+ "standardization": {
+ "standardized_count": 14,
+ "standardization_rate": 0.93
+ }
+ }
 }
 ```
 
 ---
 
-## 🐳 Deployment
+## Deployment
 
 ### Standard Deployment
 
@@ -379,7 +379,7 @@ docker-compose up --scale worker=3 -d
 
 ---
 
-## 🔧 Development
+## Development
 
 ### Adding New Test Mappings
 
@@ -387,16 +387,16 @@ Edit `config/test_mappings.yaml`:
 
 ```yaml
 mappings:
-  hemoglobin:
-    canonical_name: "Hemoglobin"
-    loinc_code: "718-7"
-    category: "Hematology"
-    unit: "g/dL"
-    reference_range: "12.0-16.0"
-    aliases:
-      - "hb"
-      - "hgb"
-      - "haemoglobin"
+ hemoglobin:
+ canonical_name: "Hemoglobin"
+ loinc_code: "718-7"
+ category: "Hematology"
+ unit: "g/dL"
+ reference_range: "12.0-16.0"
+ aliases:
+ - "hb"
+ - "hgb"
+ - "haemoglobin"
 ```
 
 ### Running Tests
@@ -421,7 +421,7 @@ flake8 backend/ workers/
 
 ---
 
-## 📊 Monitoring
+## Monitoring
 
 ### Access Points
 
@@ -444,7 +444,7 @@ All services include health checks:
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
@@ -454,13 +454,13 @@ All services include health checks:
 
 ---
 
-## 📄 License
+## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - [Google Gemini](https://deepmind.google/technologies/gemini/) for Vision AI
 - [FastAPI](https://fastapi.tiangolo.com/) for the backend framework
@@ -471,5 +471,5 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ---
 
 <p align="center">
-  Made with ❤️ for healthcare data interoperability
+ Made with for healthcare data interoperability
 </p>

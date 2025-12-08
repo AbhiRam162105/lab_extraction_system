@@ -412,6 +412,10 @@ def standardize_lab_results(results: List[Dict[str, Any]]) -> List[Dict[str, Any
         if std.category and not result.get('category'):
             enhanced_result['category'] = std.category
         
+        # Add unit from mapping if not already present (fallback for missing units)
+        if std.unit and not result.get('unit'):
+            enhanced_result['unit'] = std.unit
+        
         standardized_results.append(enhanced_result)
     
     return standardized_results

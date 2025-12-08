@@ -109,11 +109,13 @@ STRICT JSON SCHEMA:
     "lab_results": [
         {{
             "test_name": "Test Name (as written in report)",
-            "value": "Value (number or string)",
+            "value": "Value (number or string exactly as shown)",
+            "value_type": "numeric/text/mixed (numeric if number, text if qualitative like 'Neutrophilia')",
             "unit": "Unit (or null if not specified)",
             "reference_range": "Reference Range (or null)",
-            "category": "Category/Section Name (e.g. Hematology)",
-            "flag": "H/L/N/null (High/Low/Normal/Not specified)"
+            "category": "Category/Section Name (e.g. Hematology, Liver Panel)",
+            "flag": "H/L/N/null (High/Low/Normal/Not specified)",
+            "test_method": "Test method if mentioned (e.g. Immunoturbidimetric, Flow Cytometry, Photometry, or null)"
         }}
     ],
     "patient_info": {{

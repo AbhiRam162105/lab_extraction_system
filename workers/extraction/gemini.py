@@ -46,6 +46,12 @@ class ExtractionResult:
     needs_review: bool
     review_reason: Optional[str]
     extraction_metadata: Dict[str, Any]
+    # Timing information (in seconds)
+    preprocessing_time: float = 0.0
+    pass1_time: float = 0.0
+    pass2_time: float = 0.0
+    pass3_time: float = 0.0
+    total_time: float = 0.0
 
 
 class GeminiExtractor:
@@ -87,50 +93,85 @@ class GeminiExtractor:
             'standardization_applied': False
         }
         
+        # Timing tracking
+        total_start = time.time()
+        preprocessing_time = 0.0
+        pass1_time = 0.0
+        pass2_time = 0.0
+        pass3_time = 0.0
+        
         try:
             # Preprocess image
             logger.info(f"Preprocessing image: {image_path}")
+            preprocess_start = time.time()
             preprocessed_image = preprocess_image(image_path)
+            preprocessing_time = time.time() - preprocess_start
             
             # Pass 1: Vision Extraction with retry
+            pass1_start = time.time()
             raw_text, pass1_confidence = self._pass1_vision_extraction(preprocessed_image)
+            pass1_time = time.time() - pass1_start
+            
             if not raw_text:
+                total_time = time.time() - total_start
                 return ExtractionResult(
                     success=False,
                     data={'error': 'Vision extraction failed'},
                     confidence=0.0,
                     needs_review=True,
                     review_reason='Failed to extract text from image',
-                    extraction_metadata=extraction_metadata
+                    extraction_metadata=extraction_metadata,
+                    preprocessing_time=preprocessing_time,
+                    pass1_time=pass1_time,
+                    total_time=total_time
                 )
             extraction_metadata['passes_completed'] = 1
             extraction_metadata['pass1_text_length'] = len(raw_text)
             
             # Pass 2: Structure + Validate with retry
+            pass2_start = time.time()
             structured_data, pass2_confidence, attempt = self._pass2_structure_validate(raw_text)
+            pass2_time = time.time() - pass2_start
             extraction_metadata['passes_completed'] = 2
             extraction_metadata['retry_attempts'] = attempt
             
             if 'error' in structured_data:
+                total_time = time.time() - total_start
                 return ExtractionResult(
                     success=False,
                     data=structured_data,
                     confidence=pass2_confidence,
                     needs_review=True,
                     review_reason=structured_data.get('error', 'Structuring failed'),
-                    extraction_metadata=extraction_metadata
+                    extraction_metadata=extraction_metadata,
+                    preprocessing_time=preprocessing_time,
+                    pass1_time=pass1_time,
+                    pass2_time=pass2_time,
+                    total_time=total_time
                 )
             
             # Pass 3: Standardize test names
+            pass3_start = time.time()
             standardized_data = self._pass3_standardize(structured_data)
+            pass3_time = time.time() - pass3_start
             extraction_metadata['passes_completed'] = 3
             extraction_metadata['standardization_applied'] = True
+            
+            # Calculate total time
+            total_time = time.time() - total_start
             
             # Get final confidence and validation status
             final_confidence = standardized_data.get('metadata', {}).get('confidence_score', pass2_confidence)
             validation = get_validation_status(final_confidence)
             
-            # Add extraction metadata
+            # Add timing to extraction metadata
+            extraction_metadata['timing'] = {
+                'preprocessing': round(preprocessing_time, 3),
+                'pass1_vision': round(pass1_time, 3),
+                'pass2_structure': round(pass2_time, 3),
+                'pass3_standardize': round(pass3_time, 3),
+                'total': round(total_time, 3)
+            }
             standardized_data['extraction_metadata'] = extraction_metadata
             
             return ExtractionResult(
@@ -139,10 +180,16 @@ class GeminiExtractor:
                 confidence=final_confidence,
                 needs_review=validation['needs_review'],
                 review_reason=validation['recommendation'] if validation['needs_review'] else None,
-                extraction_metadata=extraction_metadata
+                extraction_metadata=extraction_metadata,
+                preprocessing_time=preprocessing_time,
+                pass1_time=pass1_time,
+                pass2_time=pass2_time,
+                pass3_time=pass3_time,
+                total_time=total_time
             )
             
         except Exception as e:
+            total_time = time.time() - total_start
             logger.error(f"Extraction pipeline failed: {e}", exc_info=True)
             return ExtractionResult(
                 success=False,
@@ -150,7 +197,12 @@ class GeminiExtractor:
                 confidence=0.0,
                 needs_review=True,
                 review_reason=f'Pipeline error: {str(e)}',
-                extraction_metadata=extraction_metadata
+                extraction_metadata=extraction_metadata,
+                preprocessing_time=preprocessing_time,
+                pass1_time=pass1_time,
+                pass2_time=pass2_time,
+                pass3_time=pass3_time,
+                total_time=total_time
             )
     
     def _pass1_vision_extraction(

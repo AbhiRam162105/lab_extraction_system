@@ -127,8 +127,8 @@ def upload_files(
         session.add(doc)
         uploaded_docs.append(doc)
         
-        # Enqueue task
-        queue.enqueue('workers.extraction.main.process_document', file_id, job_id=file_id)
+        # Enqueue task with 600s timeout for slow API calls
+        queue.enqueue('workers.extraction.main.process_document', file_id, job_id=file_id, job_timeout=600)
 
     session.commit()
     for doc in uploaded_docs:
@@ -348,7 +348,61 @@ def get_test_stats(session: Session = Depends(get_session)):
     }
 
 
-@router.get("/tests/export")
+@router.get("/tests/timing-stats")
+def get_timing_stats(session: Session = Depends(get_session)):
+    """Get processing timing statistics."""
+    from sqlalchemy import func as sqlfunc
+    
+    # Get timing averages from completed documents
+    results = session.exec(
+        select(ExtractionResult)
+        .where(ExtractionResult.total_time.isnot(None))
+    ).all()
+    
+    if not results:
+        return {
+            "total_processed": 0,
+            "avg_preprocessing": None,
+            "avg_pass1": None,
+            "avg_pass2": None,
+            "avg_pass3": None,
+            "avg_total": None,
+            "recent_timings": []
+        }
+    
+    # Calculate averages
+    preprocessing_times = [r.preprocessing_time for r in results if r.preprocessing_time]
+    pass1_times = [r.pass1_time for r in results if r.pass1_time]
+    pass2_times = [r.pass2_time for r in results if r.pass2_time]
+    pass3_times = [r.pass3_time for r in results if r.pass3_time]
+    total_times = [r.total_time for r in results if r.total_time]
+    
+    # Get recent document timings (last 20)
+    recent = results[:20]
+    recent_timings = [
+        {
+            "document_id": r.document_id,
+            "preprocessing": round(r.preprocessing_time or 0, 2),
+            "pass1_vision": round(r.pass1_time or 0, 2),
+            "pass2_structure": round(r.pass2_time or 0, 2),
+            "pass3_standardize": round(r.pass3_time or 0, 2),
+            "total": round(r.total_time or 0, 2),
+            "confidence": r.confidence_score
+        }
+        for r in recent
+    ]
+    
+    return {
+        "total_processed": len(results),
+        "avg_preprocessing": round(sum(preprocessing_times) / len(preprocessing_times), 3) if preprocessing_times else None,
+        "avg_pass1": round(sum(pass1_times) / len(pass1_times), 3) if pass1_times else None,
+        "avg_pass2": round(sum(pass2_times) / len(pass2_times), 3) if pass2_times else None,
+        "avg_pass3": round(sum(pass3_times) / len(pass3_times), 3) if pass3_times else None,
+        "avg_total": round(sum(total_times) / len(total_times), 3) if total_times else None,
+        "recent_timings": recent_timings
+    }
+
+
 def export_tests(
     session: Session = Depends(get_session),
     format: str = Query("csv", regex="^(csv|excel)$"),
@@ -371,10 +425,14 @@ def export_tests(
             "Original Test Name": t.original_test_name,
             "Standardized Test Name": t.standardized_test_name,
             "Value": t.value,
+            "Numeric Value": t.numeric_value,
+            "Text Value": t.text_value,
+            "Value Type": t.value_type,
             "Unit": t.unit,
             "Reference Range": t.reference_range,
             "Flag": t.flag,
             "Category": t.category,
+            "Method": t.method,
             "LOINC Code": t.loinc_code,
             "Match Type": t.match_type,
             "Confidence": t.standardization_confidence,
@@ -492,7 +550,8 @@ async def batch_upload(
             'workers.extraction.optimized_worker.process_document_batch',
             document_ids,
             job_id,
-            job_id=job_id
+            job_id=job_id,
+            job_timeout=600
         )
     except Exception as e:
         # Fallback to individual processing
@@ -500,7 +559,8 @@ async def batch_upload(
             queue.enqueue(
                 'workers.extraction.main.process_document',
                 doc.id,
-                job_id=doc.id
+                job_id=doc.id,
+                job_timeout=600
             )
         job_id = None
     
