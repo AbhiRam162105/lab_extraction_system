@@ -38,7 +38,8 @@ class QualityResult:
 
 QUALITY_THRESHOLDS = {
     'min_resolution': 400,       # Minimum dimension (was 200)
-    'blur_score': 80,            # Laplacian variance (was 30)
+    'blur_score': 50,            # Laplacian variance - WARNING threshold
+    'blur_score_critical': 25,   # Below this = definitely unreadable
     'contrast_min': 35,          # Standard deviation (was 20)
     'contrast_max': 90,          # Maximum contrast (detect over-processed)
     'brightness_min': 50,        # Minimum brightness (was 30)
@@ -46,6 +47,7 @@ QUALITY_THRESHOLDS = {
     'text_density_min': 0.03,    # Minimum text density (was 0.02)
     'skew_angle_max': 5.0,       # Maximum skew angle in degrees
     'noise_threshold': 0.15,     # Maximum noise level
+    'edge_density_min': 0.02,    # Minimum edge density for text
 }
 
 
@@ -89,7 +91,12 @@ def evaluate_ocr_quality(image: Image.Image) -> QualityResult:
     metrics['blur_score'] = blur_score
     
     if blur_score < QUALITY_THRESHOLDS['blur_score']:
-        severity = "very blurry" if blur_score < 40 else "slightly blurry"
+        if blur_score < QUALITY_THRESHOLDS['blur_score_critical']:
+            severity = "extremely blurry"
+        elif blur_score < 80:
+            severity = "very blurry"
+        else:
+            severity = "slightly blurry"
         issues.append(f"Image is {severity} (score: {blur_score:.1f}, min: {QUALITY_THRESHOLDS['blur_score']})")
     
     # 2b. NEW: Text clarity check (detects noisy/degraded scans)
@@ -168,14 +175,21 @@ def evaluate_ocr_quality(image: Image.Image) -> QualityResult:
     blur_score = metrics.get('blur_score', 100)
     
     # Base acceptance: score >= 0.3 and minimum clarity
-    is_acceptable = score >= 0.3 and text_clarity >= 0.28
+    # Lowered clarity threshold from 0.28 to 0.20 for scanned docs
+    is_acceptable = score >= 0.3 and text_clarity >= 0.20
     
-    # CRITICAL: Reject very blurry images (blur_score < 50)
-    # A blur score of 80 is the warning threshold, but < 50 is unacceptable
-    if blur_score < 50:
+    # CRITICAL: Reject blurry images more aggressively
+    # Blur score < 60 is definitely unreadable
+    # Blur score < 100 is borderline and needs other quality checks
+    if blur_score < QUALITY_THRESHOLDS.get('blur_score_critical', 60):
         is_acceptable = False
         if "CRITICAL" not in str(issues):
-            issues.insert(0, f"CRITICAL: Image too blurry to read (blur={blur_score:.1f}, min=50)")
+            issues.insert(0, f"CRITICAL: Image too blurry to read (blur={blur_score:.1f}, min={QUALITY_THRESHOLDS.get('blur_score_critical', 60)})")
+    elif blur_score < QUALITY_THRESHOLDS['blur_score'] and text_clarity < 0.5:
+        # Blur + low clarity = reject
+        is_acceptable = False
+        if "CRITICAL" not in str(issues):
+            issues.insert(0, f"CRITICAL: Blurry image with poor text clarity (blur={blur_score:.1f}, clarity={text_clarity:.2f})")
     
     # CRITICAL: High contrast + low clarity = NOISY SCAN = REJECT
     # This is the key pattern that catches unreadable noisy scans
@@ -220,21 +234,43 @@ def _calculate_blur_score(img_array: np.ndarray) -> float:
     Calculate blur score using Laplacian variance.
     Higher score = sharper image.
     
-    Uses second-order derivatives for better edge detection.
+    Uses multi-scale analysis for better blur detection.
     """
     try:
-        # Laplacian approximation using second derivatives
-        # More accurate than simple gradient for blur detection
+        from scipy import ndimage
+        
+        # Laplacian kernel for edge detection
         laplacian_kernel = np.array([[0, 1, 0],
                                       [1, -4, 1],
                                       [0, 1, 0]])
         
-        # Convolve with Laplacian kernel (simplified)
-        from scipy import ndimage
+        # Calculate Laplacian variance (primary blur metric)
         laplacian = ndimage.convolve(img_array.astype(float), laplacian_kernel)
-        blur_score = float(np.var(laplacian))
+        laplacian_var = float(np.var(laplacian))
         
-        return blur_score
+        # Multi-scale blur check: downsample and check again
+        # Blurry images remain blurry at all scales
+        # Sharp images lose detail when downsampled
+        h, w = img_array.shape
+        if h > 200 and w > 200:
+            # Downsample by 2x
+            downsampled = img_array[::2, ::2]
+            laplacian_down = ndimage.convolve(downsampled.astype(float), laplacian_kernel)
+            laplacian_var_down = float(np.var(laplacian_down))
+            
+            # For sharp images, downsampled variance should be lower
+            # For blurry images, ratio stays similar
+            if laplacian_var > 0:
+                scale_ratio = laplacian_var_down / laplacian_var
+            else:
+                scale_ratio = 1.0
+            
+            # If scale ratio is too high, image was already blurry
+            if scale_ratio > 0.5 and laplacian_var < 150:
+                # Penalize the score for consistently blurry images
+                laplacian_var *= 0.7
+        
+        return laplacian_var
     except ImportError:
         # Fallback if scipy not available
         gx = np.gradient(img_array.astype(float), axis=1)
