@@ -1,398 +1,259 @@
 """
-Async Batch Processor for Concurrent Image Processing.
+Batch Processor for Lab Report Extraction.
 
 Features:
-- Processes multiple images concurrently using asyncio
-- Uses model.generate_content_async() for non-blocking API calls
-- Implements batch size of 15 images (respecting Gemini rate limits)
-- Adds delays between batches for rate limiting
-- Handles exceptions gracefully without stopping entire batch
+- Concurrent processing of multiple images
+- Progress tracking via Redis
+- Rate limit awareness
+- Automatic retry on failures
 """
 
 import asyncio
 import logging
 import time
-from pathlib import Path
+import uuid
 from typing import List, Dict, Any, Optional
 from dataclasses import dataclass, field
-from PIL import Image
-import io
-
-import google.generativeai as genai
-
-from workers.extraction.rate_limiter import get_rate_limiter, AdaptiveRateLimiter
-from workers.extraction.cache_manager import get_cache_manager, CacheManager
-from workers.extraction.preprocessing import preprocess_image
-from workers.extraction.prompts import VISION_PROMPTS, get_refinement_prompt
-from workers.extraction.standardizer import standardize_lab_results
-from backend.core.config import get_settings
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
-settings = get_settings()
 
 
 @dataclass
-class BatchResult:
-    """Result of batch processing."""
+class BatchJob:
+    """Represents a batch processing job."""
+    job_id: str
+    document_ids: List[str]
+    status: str = "pending"  # pending, processing, completed, failed
     total: int = 0
-    successful: int = 0
+    completed: int = 0
     failed: int = 0
-    cached: int = 0
-    results: List[Dict[str, Any]] = field(default_factory=list)
-    errors: List[Dict[str, Any]] = field(default_factory=list)
-    processing_time: float = 0.0
+    results: Dict[str, Any] = field(default_factory=dict)
+    errors: List[str] = field(default_factory=list)
+    started_at: Optional[datetime] = None
+    completed_at: Optional[datetime] = None
     
     @property
-    def success_rate(self) -> float:
+    def progress(self) -> float:
         if self.total == 0:
             return 0.0
-        return self.successful / self.total
-
-
-@dataclass
-class ImageResult:
-    """Result for a single image."""
-    image_path: str
-    success: bool
-    data: Optional[Dict[str, Any]] = None
-    error: Optional[str] = None
-    from_cache: bool = False
-    processing_time: float = 0.0
+        return (self.completed + self.failed) / self.total
 
 
 class BatchProcessor:
     """
-    Async batch processor for lab report images.
-    
-    Processes images concurrently while respecting rate limits
-    and utilizing caching for efficiency.
+    Processes multiple lab reports concurrently.
     
     Usage:
-        processor = BatchProcessor(api_key="...", max_workers=15)
-        results = await processor.process_images_async(image_paths)
+        processor = BatchProcessor(max_concurrent=3)
+        job_id = await processor.process_batch(document_ids)
+        
+        # Check status
+        status = processor.get_job_status(job_id)
     """
     
     def __init__(
-        self,
-        api_key: str,
-        max_workers: int = 15,
-        batch_delay_seconds: float = 5.0,
-        rate_limiter: Optional[AdaptiveRateLimiter] = None,
-        cache_manager: Optional[CacheManager] = None
+        self, 
+        max_concurrent: int = 3,
+        redis_client: Optional[Any] = None
     ):
-        """
-        Initialize batch processor.
-        
-        Args:
-            api_key: Gemini API key
-            max_workers: Max concurrent workers per batch
-            batch_delay_seconds: Delay between batches
-            rate_limiter: Rate limiter instance (uses global if None)
-            cache_manager: Cache manager instance (uses global if None)
-        """
-        self.api_key = api_key
-        self.max_workers = max_workers
-        self.batch_delay = batch_delay_seconds
-        
-        # Initialize Gemini
-        genai.configure(api_key=api_key)
-        self.model = genai.GenerativeModel(settings.gemini.model)
-        
-        # Use provided or global instances
-        self.rate_limiter = rate_limiter or get_rate_limiter()
-        self.cache_manager = cache_manager or get_cache_manager()
-        
-        logger.info(
-            f"BatchProcessor initialized: max_workers={max_workers}, "
-            f"batch_delay={batch_delay_seconds}s"
-        )
+        self.max_concurrent = max_concurrent
+        self.redis_client = redis_client
+        self._jobs: Dict[str, BatchJob] = {}
+        self._semaphore: Optional[asyncio.Semaphore] = None
     
-    async def process_images_async(
-        self,
-        image_paths: List[str],
-        use_cache: bool = True
-    ) -> BatchResult:
+    def _get_semaphore(self) -> asyncio.Semaphore:
+        """Get or create semaphore for concurrency control."""
+        if self._semaphore is None:
+            self._semaphore = asyncio.Semaphore(self.max_concurrent)
+        return self._semaphore
+    
+    async def process_batch(
+        self, 
+        document_ids: List[str],
+        priority: str = "normal"
+    ) -> str:
         """
-        Process multiple images concurrently.
+        Start batch processing of documents.
         
         Args:
-            image_paths: List of image file paths
-            use_cache: Whether to use caching
+            document_ids: List of document IDs to process
+            priority: Priority level (high_priority, normal, batch)
             
         Returns:
-            BatchResult with all processing results
+            job_id for status tracking
         """
-        start_time = time.time()
-        batch_result = BatchResult(total=len(image_paths))
+        job_id = f"batch_{uuid.uuid4().hex[:12]}"
         
-        logger.info(f"Starting batch processing of {len(image_paths)} images")
-        
-        # Split into batches
-        batches = [
-            image_paths[i:i + self.max_workers]
-            for i in range(0, len(image_paths), self.max_workers)
-        ]
-        
-        for batch_idx, batch in enumerate(batches):
-            logger.info(f"Processing batch {batch_idx + 1}/{len(batches)} ({len(batch)} images)")
-            
-            # Process batch concurrently
-            tasks = [
-                self._process_single_image(path, use_cache)
-                for path in batch
-            ]
-            
-            results = await asyncio.gather(*tasks, return_exceptions=True)
-            
-            # Collect results
-            for result in results:
-                if isinstance(result, Exception):
-                    batch_result.failed += 1
-                    batch_result.errors.append({
-                        "error": str(result),
-                        "type": type(result).__name__
-                    })
-                elif isinstance(result, ImageResult):
-                    if result.success:
-                        batch_result.successful += 1
-                        if result.from_cache:
-                            batch_result.cached += 1
-                        batch_result.results.append({
-                            "image_path": result.image_path,
-                            "data": result.data,
-                            "from_cache": result.from_cache,
-                            "processing_time": result.processing_time
-                        })
-                    else:
-                        batch_result.failed += 1
-                        batch_result.errors.append({
-                            "image_path": result.image_path,
-                            "error": result.error
-                        })
-            
-            # Delay between batches (except last)
-            if batch_idx < len(batches) - 1:
-                logger.debug(f"Batch delay: {self.batch_delay}s")
-                await asyncio.sleep(self.batch_delay)
-        
-        batch_result.processing_time = time.time() - start_time
-        
-        logger.info(
-            f"Batch processing complete: {batch_result.successful}/{batch_result.total} successful, "
-            f"{batch_result.cached} from cache, {batch_result.failed} failed, "
-            f"time={batch_result.processing_time:.1f}s"
+        job = BatchJob(
+            job_id=job_id,
+            document_ids=document_ids,
+            total=len(document_ids),
+            started_at=datetime.now()
         )
         
-        return batch_result
+        self._jobs[job_id] = job
+        self._update_redis_status(job)
+        
+        # Start processing in background
+        asyncio.create_task(self._process_documents(job))
+        
+        return job_id
     
-    async def _process_single_image(
-        self,
-        image_path: str,
-        use_cache: bool = True
-    ) -> ImageResult:
-        """
-        Process a single image through the 3-pass pipeline.
+    async def _process_documents(self, job: BatchJob) -> None:
+        """Process all documents in the batch."""
+        from workers.extraction.main import process_document
         
-        Args:
-            image_path: Path to image file
-            use_cache: Whether to check/use cache
-            
-        Returns:
-            ImageResult with extraction data or error
-        """
-        start_time = time.time()
+        job.status = "processing"
+        self._update_redis_status(job)
         
-        try:
-            # Check cache first
-            if use_cache:
-                image_hash = self.cache_manager.get_image_hash(image_path)
-                cached = self.cache_manager.get_cached_result(image_hash)
-                
-                if cached:
-                    return ImageResult(
-                        image_path=image_path,
-                        success=True,
-                        data=cached.get("result"),
-                        from_cache=True,
-                        processing_time=time.time() - start_time
-                    )
-            else:
-                image_hash = None
-            
-            # Acquire rate limit
-            await self.rate_limiter.acquire_async()
-            
-            # Pass 1: Vision extraction
-            raw_text = await self._extract_raw_vision_async(image_path)
-            
-            if not raw_text:
-                return ImageResult(
-                    image_path=image_path,
-                    success=False,
-                    error="Vision extraction returned empty result"
-                )
-            
-            # Acquire rate limit for pass 2
-            await self.rate_limiter.acquire_async()
-            
-            # Pass 2: Structure and validate
-            structured = await self._structure_and_validate_async(raw_text)
-            
-            # Pass 3: Standardize (sync, no API call needed)
-            final_result = await asyncio.to_thread(
-                self._standardize_results, structured
-            )
-            
-            # Report success to rate limiter
-            self.rate_limiter.report_success()
-            
-            # Cache result
-            if use_cache and image_hash:
-                self.cache_manager.cache_result(image_hash, final_result)
-            
-            return ImageResult(
-                image_path=image_path,
-                success=True,
-                data=final_result,
-                from_cache=False,
-                processing_time=time.time() - start_time
-            )
-            
-        except Exception as e:
-            logger.error(f"Error processing {image_path}: {e}")
-            
-            # Check if rate limit error
-            if "429" in str(e) or "rate" in str(e).lower():
-                self.rate_limiter.report_rate_limit_error()
-            
-            return ImageResult(
-                image_path=image_path,
-                success=False,
-                error=str(e),
-                processing_time=time.time() - start_time
-            )
-    
-    async def _extract_raw_vision_async(self, image_path: str) -> Optional[str]:
-        """
-        Pass 1: Extract raw text from image using vision model.
+        semaphore = self._get_semaphore()
         
-        Uses multi-prompt retry strategy.
-        """
-        # Preprocess image
-        try:
-            img = await asyncio.to_thread(preprocess_image, image_path)
-        except Exception as e:
-            logger.warning(f"Preprocessing failed, using original: {e}")
-            img = Image.open(image_path)
-        
-        # Try each prompt until success
-        for prompt_idx, prompt in enumerate(VISION_PROMPTS):
-            try:
-                response = await self.model.generate_content_async(
-                    [prompt, img],
-                    generation_config=genai.types.GenerationConfig(
-                        temperature=0.1,
-                        max_output_tokens=4096
-                    )
-                )
-                
-                if response.text and len(response.text.strip()) > 50:
-                    logger.debug(f"Vision extraction succeeded with prompt {prompt_idx + 1}")
-                    return response.text
+        async def process_one(doc_id: str) -> Dict[str, Any]:
+            """Process single document with concurrency limit."""
+            async with semaphore:
+                try:
+                    logger.info(f"[Batch {job.job_id}] Processing {doc_id}")
                     
+                    # Run synchronous process_document in executor
+                    loop = asyncio.get_event_loop()
+                    result = await loop.run_in_executor(
+                        None, 
+                        process_document,
+                        doc_id
+                    )
+                    
+                    job.completed += 1
+                    job.results[doc_id] = {
+                        "status": "completed",
+                        "success": True
+                    }
+                    
+                    return {"doc_id": doc_id, "success": True}
+                    
+                except Exception as e:
+                    logger.error(f"[Batch {job.job_id}] Failed {doc_id}: {e}")
+                    job.failed += 1
+                    job.errors.append(f"{doc_id}: {str(e)}")
+                    job.results[doc_id] = {
+                        "status": "failed",
+                        "error": str(e)
+                    }
+                    return {"doc_id": doc_id, "success": False, "error": str(e)}
+                finally:
+                    self._update_redis_status(job)
+        
+        # Process all documents concurrently (limited by semaphore)
+        tasks = [process_one(doc_id) for doc_id in job.document_ids]
+        await asyncio.gather(*tasks, return_exceptions=True)
+        
+        # Mark completed
+        job.status = "completed" if job.failed == 0 else "completed_with_errors"
+        job.completed_at = datetime.now()
+        self._update_redis_status(job)
+        
+        logger.info(
+            f"[Batch {job.job_id}] Complete: "
+            f"{job.completed}/{job.total} succeeded, {job.failed} failed"
+        )
+    
+    def get_job_status(self, job_id: str) -> Optional[Dict[str, Any]]:
+        """Get status of a batch job."""
+        # Try memory first
+        if job_id in self._jobs:
+            job = self._jobs[job_id]
+            return self._job_to_dict(job)
+        
+        # Try Redis
+        if self.redis_client:
+            try:
+                data = self.redis_client.get(f"batch:{job_id}")
+                if data:
+                    import json
+                    return json.loads(data)
             except Exception as e:
-                logger.warning(f"Vision prompt {prompt_idx + 1} failed: {e}")
-                continue
+                logger.warning(f"Failed to get job from Redis: {e}")
         
         return None
     
-    async def _structure_and_validate_async(self, raw_text: str) -> Dict[str, Any]:
-        """
-        Pass 2: Convert raw text to structured JSON.
-        """
-        prompt = get_refinement_prompt(raw_text, attempt=0)
+    def _job_to_dict(self, job: BatchJob) -> Dict[str, Any]:
+        """Convert job to dictionary."""
+        return {
+            "job_id": job.job_id,
+            "status": job.status,
+            "total": job.total,
+            "completed": job.completed,
+            "failed": job.failed,
+            "progress": job.progress,
+            "errors": job.errors[:10],  # Limit errors returned
+            "started_at": job.started_at.isoformat() if job.started_at else None,
+            "completed_at": job.completed_at.isoformat() if job.completed_at else None,
+            "estimated_remaining": self._estimate_remaining(job)
+        }
+    
+    def _estimate_remaining(self, job: BatchJob) -> Optional[int]:
+        """Estimate remaining time in seconds."""
+        if job.status != "processing" or job.completed == 0:
+            return None
+        
+        elapsed = (datetime.now() - job.started_at).total_seconds() if job.started_at else 0
+        if elapsed == 0:
+            return None
+        
+        avg_per_doc = elapsed / job.completed
+        remaining = job.total - job.completed - job.failed
+        return int(avg_per_doc * remaining)
+    
+    def _update_redis_status(self, job: BatchJob) -> None:
+        """Update job status in Redis for distributed tracking."""
+        if not self.redis_client:
+            return
         
         try:
-            response = await self.model.generate_content_async(
-                prompt,
-                generation_config=genai.types.GenerationConfig(
-                    temperature=0.1,
-                    max_output_tokens=4096
-                )
-            )
-            
-            result_text = response.text.strip()
-            
-            # Clean markdown if present
-            if result_text.startswith('```'):
-                result_text = result_text.split('```')[1]
-                if result_text.startswith('json'):
-                    result_text = result_text[4:]
-            
             import json
-            return json.loads(result_text)
-            
-        except Exception as e:
-            logger.error(f"Structuring failed: {e}")
-            return {
-                "lab_results": [],
-                "patient_info": {},
-                "metadata": {
-                    "confidence_score": 0.0,
-                    "needs_review": True,
-                    "error": str(e)
-                }
-            }
-    
-    def _standardize_results(self, structured: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Pass 3: Standardize test names with LOINC codes.
-        """
-        lab_results = structured.get("lab_results", [])
-        
-        if lab_results:
-            standardized = standardize_lab_results(lab_results)
-            structured["lab_results"] = standardized
-            
-            # Add standardization metrics
-            total = len(standardized)
-            standardized_count = sum(
-                1 for r in standardized
-                if r.get("standardization", {}).get("is_standardized", False)
+            data = self._job_to_dict(job)
+            self.redis_client.setex(
+                f"batch:{job.job_id}",
+                3600 * 24,  # 24 hour expiry
+                json.dumps(data)
             )
-            
-            if "metadata" not in structured:
-                structured["metadata"] = {}
-            
-            structured["metadata"]["standardization"] = {
-                "total_tests": total,
-                "standardized_count": standardized_count,
-                "standardization_rate": standardized_count / total if total > 0 else 0
-            }
-        
-        return structured
+        except Exception as e:
+            logger.warning(f"Failed to update Redis: {e}")
+    
+    def list_jobs(self, limit: int = 20) -> List[Dict[str, Any]]:
+        """List recent batch jobs."""
+        jobs = list(self._jobs.values())
+        jobs.sort(key=lambda j: j.started_at or datetime.min, reverse=True)
+        return [self._job_to_dict(j) for j in jobs[:limit]]
 
 
-# Convenience function for sync usage
-def process_images_batch(
-    image_paths: List[str],
-    api_key: Optional[str] = None,
-    max_workers: int = 15
-) -> BatchResult:
-    """
-    Sync wrapper for batch processing.
+# Global instance
+_batch_processor: Optional[BatchProcessor] = None
+
+
+def get_batch_processor(
+    max_concurrent: int = 3,
+    redis_client: Optional[Any] = None
+) -> BatchProcessor:
+    """Get or create the global batch processor."""
+    global _batch_processor
     
-    Args:
-        image_paths: List of image file paths
-        api_key: Gemini API key (uses settings if None)
-        max_workers: Max concurrent workers
+    if _batch_processor is None:
+        # Try to get Redis client
+        if redis_client is None:
+            try:
+                import redis
+                from backend.core.config import get_settings
+                settings = get_settings()
+                redis_client = redis.Redis.from_url(settings.redis.url)
+                redis_client.ping()
+            except Exception as e:
+                logger.warning(f"Redis not available for batch processing: {e}")
+                redis_client = None
         
-    Returns:
-        BatchResult with all processing results
-    """
-    key = api_key or settings.gemini.api_key
-    if not key:
-        raise ValueError("Gemini API key not provided")
+        _batch_processor = BatchProcessor(
+            max_concurrent=max_concurrent,
+            redis_client=redis_client
+        )
     
-    processor = BatchProcessor(api_key=key, max_workers=max_workers)
-    return asyncio.run(processor.process_images_async(image_paths))
+    return _batch_processor

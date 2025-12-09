@@ -1,48 +1,66 @@
 """
 Lab Report Extraction Workers Package.
 
-This package contains the extraction pipeline components:
-- preprocessing: Enhanced image preprocessing with deskewing, denoising, etc.
-- prompts: Multi-prompt strategy for robust extraction
-- standardizer: Test name standardization with LOINC codes
-- gemini: 3-pass extraction pipeline using Gemini Vision API
-- main: Document processing worker
+Production Pipeline:
+- single_vision_extractor: Main extraction using Gemini Vision
+- strict_normalizer: YAML-based test name standardization
+- panel_validator: Panel completeness validation
+- quality_verifier: Extraction quality verification
+- safe_summary: Read-only summary generation
+- rate_limiter: API rate limiting
+- cache_manager: Redis/disk caching
+- batch_processor: Batch processing
 """
 
-from workers.extraction.gemini import extract_lab_report, two_pass_extraction, GeminiExtractor
-from workers.extraction.standardizer import (
-    standardize_test_name,
-    standardize_lab_results,
-    TestNameStandardizer,
-    get_standardizer
+from workers.extraction.single_vision_extractor import (
+    SingleVisionExtractor,
+    VisionExtractionResult,
+    extract_single_vision
+)
+from workers.extraction.strict_normalizer import (
+    StrictNormalizer,
+    NormalizerResult,
+    NormalizedResult
 )
 from workers.extraction.preprocessing import preprocess_image, ImagePreprocessor
-from workers.extraction.prompts import (
-    VISION_PROMPTS,
-    get_refinement_prompt,
-    should_retry,
-    get_validation_status
-)
+from workers.extraction.panel_validator import validate_panel_completeness
+from workers.extraction.quality_verifier import verify_extraction_quality
+from workers.extraction.safe_summary import generate_safe_summary
+from workers.extraction.rate_limiter import get_rate_limiter, AdaptiveRateLimiter
+from workers.extraction.cache_manager import CacheManager, get_cache_manager
+from workers.extraction.batch_processor import BatchProcessor, get_batch_processor
 
 __all__ = [
     # Main extraction
-    'extract_lab_report',
-    'two_pass_extraction',
-    'GeminiExtractor',
+    'SingleVisionExtractor',
+    'VisionExtractionResult',
+    'extract_single_vision',
     
-    # Standardization
-    'standardize_test_name',
-    'standardize_lab_results',
-    'TestNameStandardizer',
-    'get_standardizer',
+    # Normalization
+    'StrictNormalizer',
+    'NormalizerResult',
+    'NormalizedResult',
     
     # Preprocessing
     'preprocess_image',
     'ImagePreprocessor',
     
-    # Prompts
-    'VISION_PROMPTS',
-    'get_refinement_prompt',
-    'should_retry',
-    'get_validation_status',
+    # Validation
+    'validate_panel_completeness',
+    'verify_extraction_quality',
+    
+    # Summary
+    'generate_safe_summary',
+    
+    # Rate limiting
+    'get_rate_limiter',
+    'AdaptiveRateLimiter',
+    
+    # Caching
+    'CacheManager',
+    'get_cache_manager',
+    
+    # Batch processing
+    'BatchProcessor',
+    'get_batch_processor',
 ]

@@ -116,6 +116,20 @@ with tab2:
             if doc_data:
                 df = pd.DataFrame(doc_data)
                 
+                # Format status with emoji badges for better contrast
+                def format_status(status):
+                    status_badges = {
+                        'completed': '✅ Completed',
+                        'processing': '🔄 Processing',
+                        'failed': '❌ Failed',
+                        'queued': '⏳ Queued',
+                        'pending': '⏸️ Pending'
+                    }
+                    return status_badges.get(status, status)
+                
+                if 'status' in df.columns:
+                    df['Status'] = df['status'].apply(format_status)
+                
                 # Metrics
                 col1, col2, col3, col4 = st.columns(4)
                 col1.metric("Total Documents", len(df))
@@ -255,6 +269,40 @@ with tab2:
                                             
                                             if metadata.get("needs_review"):
                                                 st.error("⚠️ Needs Review")
+                                
+                                # Display Report Summary (Pass 4)
+                                summary = data.get("summary", {})
+                                if summary:
+                                    with st.expander("📋 Report Summary", expanded=True):
+                                        # Priority level badge
+                                        priority = summary.get("priority_level", "normal")
+                                        priority_badges = {
+                                            "urgent": "🔴 **URGENT**",
+                                            "attention": "🟡 **Attention Required**",
+                                            "normal": "🟢 Normal"
+                                        }
+                                        st.markdown(f"**Priority:** {priority_badges.get(priority, priority)}")
+                                        
+                                        # Report type and purpose
+                                        report_type = summary.get("report_type", "Lab Report")
+                                        report_purpose = summary.get("report_purpose", "")
+                                        st.markdown(f"**Report Type:** {report_type}")
+                                        if report_purpose:
+                                            st.markdown(f"**Purpose:** {report_purpose}")
+                                        
+                                        # Abnormal findings
+                                        abnormal = summary.get("abnormal_findings", [])
+                                        if abnormal:
+                                            st.markdown("**Abnormal Findings:**")
+                                            for finding in abnormal:
+                                                st.markdown(f"- ⚠️ {finding}")
+                                        
+                                        # Manual review items
+                                        review_items = summary.get("manual_review_items", [])
+                                        if review_items:
+                                            st.markdown("**Manual Review Items:**")
+                                            for item in review_items:
+                                                st.markdown(f"- 📝 {item}")
                                 
                                 # Try standard schema first
                                 if "lab_results" in data and isinstance(data["lab_results"], list):

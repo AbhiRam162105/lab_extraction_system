@@ -1,17 +1,100 @@
+version: "1.1"
+last_updated: "2025-01-10"
+
+mappings:
+
 # =============================================================================
-# Lab Test Name Mappings for Standardization
-# =============================================================================
-# This file maps various lab test name aliases to canonical names with LOINC codes.
-# LOINC (Logical Observation Identifiers Names and Codes) enables interoperability.
+# ARTERIAL BLOOD GAS (ABG)
 # =============================================================================
 
-version: "1.0"
-last_updated: "2024-12-07"
+  ph:
+    canonical_name: "Arterial Blood pH"
+    loinc_code: "11558-4"
+    category: "Arterial Blood Gas"
+    unit: ""
+    aliases:
+      - "ph"
+      - "arterial ph"
+      - "blood ph"
+
+  pco2:
+    canonical_name: "Partial Pressure of Carbon Dioxide (PCO2)"
+    loinc_code: "2019-8"
+    category: "Arterial Blood Gas"
+    unit: "mmHg"
+    aliases:
+      - "pco2"
+      - "partial pco2"
+      - "co2 pressure"
+      - "carbon dioxide partial pressure"
+      - "paco2"
+
+  po2:
+    canonical_name: "Partial Pressure of Oxygen (PO2)"
+    loinc_code: "2703-7"
+    category: "Arterial Blood Gas"
+    unit: "mmHg"
+    aliases:
+      - "po2"
+      - "partial po2"
+      - "oxygen partial pressure"
+      - "pao2"
+
+  hco3_abg:
+    canonical_name: "Bicarbonate (HCO3-) — ABG"
+    loinc_code: "1960-4"
+    category: "Arterial Blood Gas"
+    unit: "mmol/L"
+    aliases:
+      - "hco3"
+      - "hco3-"
+      - "bicarbonate"
+      - "actual bicarbonate"
+
+  base_excess:
+    canonical_name: "Base Excess"
+    loinc_code: "1925-7"
+    category: "Arterial Blood Gas"
+    unit: "mmol/L"
+    aliases:
+      - "base excess"
+      - "be"
+      - "base excess (be)"
+
+  oxygen_saturation:
+    canonical_name: "Oxygen Saturation (SaO2)"
+    loinc_code: "2708-6"
+    category: "Arterial Blood Gas"
+    unit: "%"
+    aliases:
+      - "sao2"
+      - "oxygen saturation"
+      - "o2 saturation"
+      - "saturation o2"
+
+  lactate:
+    canonical_name: "Lactate"
+    loinc_code: "2524-7"
+    category: "Arterial Blood Gas"
+    unit: "mmol/L"
+    aliases:
+      - "lactate"
+      - "lac"
+
+  ionized_calcium:
+    canonical_name: "Ionized Calcium"
+    loinc_code: "1994-3"
+    category: "Arterial Blood Gas"
+    unit: "mmol/L"
+    aliases:
+      - "ionized calcium"
+      - "ica"
+      - "ca++"
 
 # =============================================================================
 # HEMATOLOGY - Complete Blood Count (CBC)
 # =============================================================================
-mappings:
+
   hemoglobin:
     canonical_name: "Hemoglobin"
     loinc_code: "718-7"
@@ -45,7 +128,6 @@ mappings:
     aliases:
       - "rbc"
       - "rbc count"
-      - "red blood cells"
       - "erythrocytes"
       - "erythrocyte count"
       - "red cell count"
@@ -59,7 +141,6 @@ mappings:
     aliases:
       - "wbc"
       - "wbc count"
-      - "white blood cells"
       - "leukocytes"
       - "leukocyte count"
       - "total wbc"
@@ -74,7 +155,6 @@ mappings:
     unit: "/uL"
     aliases:
       - "plt"
-      - "platelet count"
       - "platelets"
       - "thrombocytes"
       - "thrombocyte count"
@@ -88,7 +168,6 @@ mappings:
     aliases:
       - "mcv"
       - "mean cell volume"
-      - "mean corpuscular volume"
 
   mch:
     canonical_name: "Mean Corpuscular Hemoglobin"
@@ -98,7 +177,6 @@ mappings:
     aliases:
       - "mch"
       - "mean cell hemoglobin"
-      - "mean corpuscular hemoglobin"
 
   mchc:
     canonical_name: "Mean Corpuscular Hemoglobin Concentration"
@@ -108,7 +186,6 @@ mappings:
     aliases:
       - "mchc"
       - "mean cell hemoglobin concentration"
-      - "mean corpuscular hemoglobin concentration"
 
   rdw:
     canonical_name: "Red Cell Distribution Width"
@@ -118,7 +195,6 @@ mappings:
     aliases:
       - "rdw"
       - "rdw-cv"
-      - "red cell distribution width"
       - "rbc distribution width"
 
   mpv:
@@ -133,6 +209,7 @@ mappings:
 # =============================================================================
 # HEMATOLOGY - Differential Count
 # =============================================================================
+
   neutrophils:
     canonical_name: "Neutrophils"
     loinc_code: "751-8"
@@ -141,11 +218,8 @@ mappings:
     aliases:
       - "neutrophils"
       - "neut"
-      - "neutrophil count"
-      - "neutrophils %"
       - "polymorphs"
       - "pmn"
-      - "segmented neutrophils"
 
   lymphocytes:
     canonical_name: "Lymphocytes"
@@ -155,8 +229,6 @@ mappings:
     aliases:
       - "lymphocytes"
       - "lymph"
-      - "lymphocyte count"
-      - "lymphocytes %"
 
   monocytes:
     canonical_name: "Monocytes"
@@ -166,8 +238,6 @@ mappings:
     aliases:
       - "monocytes"
       - "mono"
-      - "monocyte count"
-      - "monocytes %"
 
   eosinophils:
     canonical_name: "Eosinophils"
@@ -177,8 +247,6 @@ mappings:
     aliases:
       - "eosinophils"
       - "eos"
-      - "eosinophil count"
-      - "eosinophils %"
 
   basophils:
     canonical_name: "Basophils"
@@ -188,8 +256,137 @@ mappings:
     aliases:
       - "basophils"
       - "baso"
-      - "basophil count"
-      - "basophils %"
+
+# =============================================================================
+# HEMATOLOGY - Absolute Counts
+# =============================================================================
+
+  absolute_neutrophil_count:
+    canonical_name: "Absolute Neutrophil Count"
+    loinc_code: "751-8"
+    category: "Hematology"
+    unit: "/cumm"
+    aliases:
+      - "absolute neutrophil count"
+      - "anc"
+      - "abs neutrophils"
+      - "neutrophils (abs)"
+      - "absolute neutrophils"
+      - "neutrophil count absolute"
+
+  absolute_lymphocyte_count:
+    canonical_name: "Absolute Lymphocyte Count"
+    loinc_code: "731-0"
+    category: "Hematology"
+    unit: "/cumm"
+    aliases:
+      - "absolute lymphocyte count"
+      - "alc"
+      - "abs lymphocytes"
+      - "lymphocytes (abs)"
+      - "absolute lymphocytes"
+      - "lymphocyte count absolute"
+
+  absolute_monocyte_count:
+    canonical_name: "Absolute Monocyte Count"
+    loinc_code: "742-7"
+    category: "Hematology"
+    unit: "/cumm"
+    aliases:
+      - "absolute monocyte count"
+      - "amc"
+      - "abs monocytes"
+      - "monocytes (abs)"
+      - "absolute monocytes"
+      - "monocyte count absolute"
+
+  absolute_eosinophil_count:
+    canonical_name: "Absolute Eosinophil Count"
+    loinc_code: "713-8"
+    category: "Hematology"
+    unit: "/cumm"
+    aliases:
+      - "absolute eosinophil count"
+      - "aec"
+      - "abs eosinophils"
+      - "eosinophils (abs)"
+      - "absolute eosinophils"
+      - "eosinophil count absolute"
+
+  absolute_basophil_count:
+    canonical_name: "Absolute Basophil Count"
+    loinc_code: "704-7"
+    category: "Hematology"
+    unit: "/cumm"
+    aliases:
+      - "absolute basophil count"
+      - "abc"
+      - "abs basophils"
+      - "basophils (abs)"
+      - "absolute basophils"
+
+# =============================================================================
+# HEMATOLOGY - Ratio Tests
+# =============================================================================
+
+  neutrophil_lymphocyte_ratio:
+    canonical_name: "Neutrophil-Lymphocyte Ratio"
+    loinc_code: "N/A"
+    category: "Hematology"
+    unit: ""
+    aliases:
+      - "neutrophil lymphocyte ratio"
+      - "nlr"
+      - "n/l ratio"
+      - "neut lymph ratio"
+
+  platelet_lymphocyte_ratio:
+    canonical_name: "Platelet-Lymphocyte Ratio"
+    loinc_code: "N/A"
+    category: "Hematology"
+    unit: ""
+    aliases:
+      - "platelet lymphocyte ratio"
+      - "plr"
+      - "plt lymph ratio"
+
+# =============================================================================
+# COAGULATION - Enhanced
+# =============================================================================
+
+  prothrombin_time:
+    canonical_name: "Prothrombin Time"
+    loinc_code: "5902-2"
+    category: "Coagulation"
+    unit: "Seconds"
+    aliases:
+      - "prothrombin time"
+      - "pt"
+      - "protime"
+      - "pro time"
+      - "pt time"
+
+  inr:
+    canonical_name: "International Normalized Ratio"
+    loinc_code: "5894-1"
+    category: "Coagulation"
+    unit: ""
+    aliases:
+      - "inr"
+      - "international normalized ratio"
+      - "pt inr"
+
+  aptt:
+    canonical_name: "Activated Partial Thromboplastin Time"
+    loinc_code: "3173-2"
+    category: "Coagulation"
+    unit: "Seconds"
+    aliases:
+      - "aptt"
+      - "activated partial thromboplastin time"
+      - "ptt"
+      - "partial thromboplastin time"
+      - "aptt test"
 
   esr:
     canonical_name: "Erythrocyte Sedimentation Rate"
@@ -199,13 +396,85 @@ mappings:
     aliases:
       - "esr"
       - "sed rate"
-      - "sedimentation rate"
-      - "erythrocyte sedimentation rate"
       - "westergren"
+
+# =============================================================================
+# PERIPHERAL SMEAR / MORPHOLOGY
+# =============================================================================
+
+  rbc_morphology:
+    canonical_name: "RBC Morphology"
+    loinc_code: "N/A"
+    category: "Peripheral Smear"
+    unit: ""
+    value_type: "text"
+    aliases:
+      - "rbc morphology"
+      - "rbc's"
+      - "rbcs"
+      - "red cell morphology"
+      - "erythrocyte morphology"
+
+  wbc_morphology:
+    canonical_name: "WBC Morphology"
+    loinc_code: "N/A"
+    category: "Peripheral Smear"
+    unit: ""
+    value_type: "text"
+    aliases:
+      - "wbc morphology"
+      - "wbc's"
+      - "wbcs"
+      - "white cell morphology"
+      - "leukocyte morphology"
+
+  platelet_morphology:
+    canonical_name: "Platelet Morphology"
+    loinc_code: "N/A"
+    category: "Peripheral Smear"
+    unit: ""
+    value_type: "text"
+    aliases:
+      - "platelet morphology"
+      - "platelets"
+      - "platelet appearance"
+
+  hemoparasites:
+    canonical_name: "Hemoparasites"
+    loinc_code: "N/A"
+    category: "Peripheral Smear"
+    unit: ""
+    value_type: "text"
+    aliases:
+      - "hemoparasites"
+      - "blood parasites"
+      - "malarial parasite"
+
+  abnormal_cells:
+    canonical_name: "Abnormal Cells"
+    loinc_code: "N/A"
+    category: "Peripheral Smear"
+    unit: ""
+    value_type: "text"
+    aliases:
+      - "abnormal cells"
+      - "atypical cells"
+      - "blast cells"
+
+  immature_platelet_fraction:
+    canonical_name: "Immature Platelet Fraction"
+    loinc_code: "N/A"
+    category: "Hematology"
+    unit: "%"
+    aliases:
+      - "immature platelet fraction"
+      - "ipf"
+      - "reticulated platelets"
 
 # =============================================================================
 # METABOLIC PANEL - Glucose
 # =============================================================================
+
   fasting_glucose:
     canonical_name: "Fasting Blood Glucose"
     loinc_code: "1558-6"
@@ -216,8 +485,6 @@ mappings:
       - "fasting glucose"
       - "fasting blood sugar"
       - "glucose fasting"
-      - "blood sugar fasting"
-      - "fbg"
 
   random_glucose:
     canonical_name: "Random Blood Glucose"
@@ -227,10 +494,7 @@ mappings:
     aliases:
       - "rbs"
       - "random glucose"
-      - "random blood sugar"
-      - "glucose random"
       - "blood glucose"
-      - "blood sugar"
 
   postprandial_glucose:
     canonical_name: "Postprandial Blood Glucose"
@@ -239,11 +503,7 @@ mappings:
     unit: "mg/dL"
     aliases:
       - "ppbs"
-      - "pp glucose"
       - "postprandial glucose"
-      - "post meal glucose"
-      - "2 hour glucose"
-      - "pp blood sugar"
 
   hba1c:
     canonical_name: "Hemoglobin A1c"
@@ -253,14 +513,11 @@ mappings:
     aliases:
       - "hba1c"
       - "a1c"
-      - "glycated hemoglobin"
-      - "glycosylated hemoglobin"
-      - "hemoglobin a1c"
-      - "hb a1c"
 
 # =============================================================================
 # LIPID PANEL
 # =============================================================================
+
   total_cholesterol:
     canonical_name: "Total Cholesterol"
     loinc_code: "2093-3"
@@ -268,9 +525,6 @@ mappings:
     unit: "mg/dL"
     aliases:
       - "cholesterol"
-      - "total cholesterol"
-      - "cholesterol total"
-      - "serum cholesterol"
       - "tc"
 
   ldl_cholesterol:
@@ -280,11 +534,7 @@ mappings:
     unit: "mg/dL"
     aliases:
       - "ldl"
-      - "ldl cholesterol"
       - "ldl-c"
-      - "low density lipoprotein"
-      - "ldl direct"
-      - "bad cholesterol"
 
   hdl_cholesterol:
     canonical_name: "HDL Cholesterol"
@@ -293,10 +543,7 @@ mappings:
     unit: "mg/dL"
     aliases:
       - "hdl"
-      - "hdl cholesterol"
       - "hdl-c"
-      - "high density lipoprotein"
-      - "good cholesterol"
 
   triglycerides:
     canonical_name: "Triglycerides"
@@ -306,9 +553,6 @@ mappings:
     aliases:
       - "tg"
       - "triglycerides"
-      - "trigs"
-      - "triglyceride"
-      - "serum triglycerides"
 
   vldl:
     canonical_name: "VLDL Cholesterol"
@@ -317,13 +561,11 @@ mappings:
     unit: "mg/dL"
     aliases:
       - "vldl"
-      - "vldl cholesterol"
-      - "vldl-c"
-      - "very low density lipoprotein"
 
 # =============================================================================
 # KIDNEY FUNCTION (RENAL PANEL)
 # =============================================================================
+
   creatinine:
     canonical_name: "Creatinine"
     loinc_code: "2160-0"
@@ -332,9 +574,6 @@ mappings:
     aliases:
       - "creatinine"
       - "creat"
-      - "serum creatinine"
-      - "s. creatinine"
-      - "blood creatinine"
 
   blood_urea_nitrogen:
     canonical_name: "Blood Urea Nitrogen"
@@ -343,11 +582,7 @@ mappings:
     unit: "mg/dL"
     aliases:
       - "bun"
-      - "blood urea nitrogen"
       - "urea nitrogen"
-      - "urea"
-      - "blood urea"
-      - "serum urea"
 
   uric_acid:
     canonical_name: "Uric Acid"
@@ -356,7 +591,6 @@ mappings:
     unit: "mg/dL"
     aliases:
       - "uric acid"
-      - "serum uric acid"
       - "urate"
 
   egfr:
@@ -367,12 +601,11 @@ mappings:
     aliases:
       - "egfr"
       - "gfr"
-      - "estimated gfr"
-      - "glomerular filtration rate"
 
 # =============================================================================
 # LIVER FUNCTION (HEPATIC PANEL)
 # =============================================================================
+
   alt:
     canonical_name: "Alanine Aminotransferase"
     loinc_code: "1742-6"
@@ -381,9 +614,6 @@ mappings:
     aliases:
       - "alt"
       - "sgpt"
-      - "alanine aminotransferase"
-      - "alanine transaminase"
-      - "alt/sgpt"
 
   ast:
     canonical_name: "Aspartate Aminotransferase"
@@ -393,9 +623,6 @@ mappings:
     aliases:
       - "ast"
       - "sgot"
-      - "aspartate aminotransferase"
-      - "aspartate transaminase"
-      - "ast/sgot"
 
   alp:
     canonical_name: "Alkaline Phosphatase"
@@ -404,9 +631,6 @@ mappings:
     unit: "U/L"
     aliases:
       - "alp"
-      - "alkaline phosphatase"
-      - "alk phos"
-      - "alkp"
 
   ggt:
     canonical_name: "Gamma-Glutamyl Transferase"
@@ -415,9 +639,6 @@ mappings:
     unit: "U/L"
     aliases:
       - "ggt"
-      - "gamma gt"
-      - "gamma-glutamyl transferase"
-      - "ggtp"
 
   total_bilirubin:
     canonical_name: "Total Bilirubin"
@@ -425,11 +646,8 @@ mappings:
     category: "Liver Panel"
     unit: "mg/dL"
     aliases:
-      - "bilirubin"
       - "total bilirubin"
-      - "bilirubin total"
-      - "t. bilirubin"
-      - "t bil"
+      - "bilirubin"
 
   direct_bilirubin:
     canonical_name: "Direct Bilirubin"
@@ -438,9 +656,6 @@ mappings:
     unit: "mg/dL"
     aliases:
       - "direct bilirubin"
-      - "d. bilirubin"
-      - "conjugated bilirubin"
-      - "d bil"
 
   indirect_bilirubin:
     canonical_name: "Indirect Bilirubin"
@@ -449,8 +664,6 @@ mappings:
     unit: "mg/dL"
     aliases:
       - "indirect bilirubin"
-      - "unconjugated bilirubin"
-      - "i bil"
 
   total_protein:
     canonical_name: "Total Protein"
@@ -459,9 +672,6 @@ mappings:
     unit: "g/dL"
     aliases:
       - "total protein"
-      - "protein total"
-      - "serum protein"
-      - "tp"
 
   albumin:
     canonical_name: "Albumin"
@@ -471,7 +681,6 @@ mappings:
     aliases:
       - "albumin"
       - "alb"
-      - "serum albumin"
 
   globulin:
     canonical_name: "Globulin"
@@ -480,8 +689,6 @@ mappings:
     unit: "g/dL"
     aliases:
       - "globulin"
-      - "serum globulin"
-      - "glob"
 
   ag_ratio:
     canonical_name: "Albumin/Globulin Ratio"
@@ -490,13 +697,11 @@ mappings:
     unit: "ratio"
     aliases:
       - "a/g ratio"
-      - "ag ratio"
-      - "albumin globulin ratio"
-      - "a:g ratio"
 
 # =============================================================================
 # THYROID PANEL
 # =============================================================================
+
   tsh:
     canonical_name: "Thyroid Stimulating Hormone"
     loinc_code: "3016-3"
@@ -504,9 +709,6 @@ mappings:
     unit: "mIU/L"
     aliases:
       - "tsh"
-      - "thyroid stimulating hormone"
-      - "thyrotropin"
-      - "serum tsh"
 
   free_t3:
     canonical_name: "Free T3"
@@ -516,8 +718,6 @@ mappings:
     aliases:
       - "ft3"
       - "free t3"
-      - "t3 free"
-      - "free triiodothyronine"
 
   free_t4:
     canonical_name: "Free T4"
@@ -527,8 +727,6 @@ mappings:
     aliases:
       - "ft4"
       - "free t4"
-      - "t4 free"
-      - "free thyroxine"
 
   total_t3:
     canonical_name: "Total T3"
@@ -537,8 +735,6 @@ mappings:
     unit: "ng/dL"
     aliases:
       - "t3"
-      - "total t3"
-      - "triiodothyronine"
 
   total_t4:
     canonical_name: "Total T4"
@@ -547,12 +743,11 @@ mappings:
     unit: "ug/dL"
     aliases:
       - "t4"
-      - "total t4"
-      - "thyroxine"
 
 # =============================================================================
 # ELECTROLYTES
 # =============================================================================
+
   sodium:
     canonical_name: "Sodium"
     loinc_code: "2951-2"
@@ -573,7 +768,6 @@ mappings:
       - "potassium"
       - "k"
       - "k+"
-      - "serum potassium"
 
   chloride:
     canonical_name: "Chloride"
@@ -584,19 +778,16 @@ mappings:
       - "chloride"
       - "cl"
       - "cl-"
-      - "serum chloride"
 
   bicarbonate:
     canonical_name: "Bicarbonate"
-    loinc_code: "1963-8"
+    loinc_code: "2028-9"
     category: "Electrolytes"
     unit: "mEq/L"
     aliases:
       - "bicarbonate"
       - "hco3"
-      - "co2"
-      - "carbon dioxide"
-      - "total co2"
+      - "hco3-"
 
   calcium:
     canonical_name: "Calcium"
@@ -606,7 +797,6 @@ mappings:
     aliases:
       - "calcium"
       - "ca"
-      - "ca2+"
       - "serum calcium"
       - "total calcium"
 
@@ -619,8 +809,6 @@ mappings:
       - "phosphorus"
       - "phosphate"
       - "po4"
-      - "serum phosphorus"
-      - "inorganic phosphorus"
 
   magnesium:
     canonical_name: "Magnesium"
@@ -630,11 +818,11 @@ mappings:
     aliases:
       - "magnesium"
       - "mg"
-      - "serum magnesium"
 
 # =============================================================================
 # IRON STUDIES
 # =============================================================================
+
   iron:
     canonical_name: "Serum Iron"
     loinc_code: "2498-4"
@@ -644,7 +832,6 @@ mappings:
       - "iron"
       - "serum iron"
       - "fe"
-      - "s. iron"
 
   tibc:
     canonical_name: "Total Iron Binding Capacity"
@@ -653,8 +840,6 @@ mappings:
     unit: "ug/dL"
     aliases:
       - "tibc"
-      - "total iron binding capacity"
-      - "iron binding capacity"
 
   ferritin:
     canonical_name: "Ferritin"
@@ -663,8 +848,6 @@ mappings:
     unit: "ng/mL"
     aliases:
       - "ferritin"
-      - "serum ferritin"
-      - "s. ferritin"
 
   transferrin_saturation:
     canonical_name: "Transferrin Saturation"
@@ -675,11 +858,11 @@ mappings:
       - "transferrin saturation"
       - "tsat"
       - "iron saturation"
-      - "% saturation"
 
 # =============================================================================
 # VITAMINS
 # =============================================================================
+
   vitamin_d:
     canonical_name: "Vitamin D, 25-Hydroxy"
     loinc_code: "1989-3"
@@ -687,12 +870,7 @@ mappings:
     unit: "ng/mL"
     aliases:
       - "vitamin d"
-      - "vit d"
       - "25-oh vitamin d"
-      - "25-hydroxy vitamin d"
-      - "vitamin d total"
-      - "25 hydroxy vitamin d"
-      - "cholecalciferol"
 
   vitamin_b12:
     canonical_name: "Vitamin B12"
@@ -702,9 +880,6 @@ mappings:
     aliases:
       - "vitamin b12"
       - "b12"
-      - "vit b12"
-      - "cobalamin"
-      - "cyanocobalamin"
 
   folate:
     canonical_name: "Folate"
@@ -714,12 +889,11 @@ mappings:
     aliases:
       - "folate"
       - "folic acid"
-      - "vitamin b9"
-      - "serum folate"
 
 # =============================================================================
 # CARDIAC MARKERS
 # =============================================================================
+
   troponin_i:
     canonical_name: "Troponin I"
     loinc_code: "10839-9"
@@ -728,8 +902,6 @@ mappings:
     aliases:
       - "troponin i"
       - "trop i"
-      - "cardiac troponin i"
-      - "ctni"
 
   troponin_t:
     canonical_name: "Troponin T"
@@ -739,8 +911,6 @@ mappings:
     aliases:
       - "troponin t"
       - "trop t"
-      - "cardiac troponin t"
-      - "ctnt"
 
   ck_mb:
     canonical_name: "CK-MB"
@@ -749,9 +919,6 @@ mappings:
     unit: "ng/mL"
     aliases:
       - "ck-mb"
-      - "ckmb"
-      - "creatine kinase mb"
-      - "ck mb"
 
   bnp:
     canonical_name: "B-type Natriuretic Peptide"
@@ -760,13 +927,11 @@ mappings:
     unit: "pg/mL"
     aliases:
       - "bnp"
-      - "brain natriuretic peptide"
-      - "b-type natriuretic peptide"
-      - "nt-probnp"
 
 # =============================================================================
 # COAGULATION
 # =============================================================================
+
   pt:
     canonical_name: "Prothrombin Time"
     loinc_code: "5902-2"
@@ -774,8 +939,6 @@ mappings:
     unit: "seconds"
     aliases:
       - "pt"
-      - "prothrombin time"
-      - "pro time"
 
   inr:
     canonical_name: "International Normalized Ratio"
@@ -784,8 +947,6 @@ mappings:
     unit: "ratio"
     aliases:
       - "inr"
-      - "pt/inr"
-      - "international normalized ratio"
 
   aptt:
     canonical_name: "Activated Partial Thromboplastin Time"
@@ -795,8 +956,6 @@ mappings:
     aliases:
       - "aptt"
       - "ptt"
-      - "activated partial thromboplastin time"
-      - "partial thromboplastin time"
 
   fibrinogen:
     canonical_name: "Fibrinogen"
@@ -805,8 +964,6 @@ mappings:
     unit: "mg/dL"
     aliases:
       - "fibrinogen"
-      - "factor i"
-      - "plasma fibrinogen"
 
   d_dimer:
     canonical_name: "D-Dimer"
@@ -815,13 +972,11 @@ mappings:
     unit: "ng/mL"
     aliases:
       - "d-dimer"
-      - "d dimer"
-      - "ddimer"
-      - "fibrin degradation products"
 
 # =============================================================================
 # URINALYSIS
 # =============================================================================
+
   urine_ph:
     canonical_name: "Urine pH"
     loinc_code: "2756-5"
@@ -829,8 +984,6 @@ mappings:
     unit: "pH"
     aliases:
       - "urine ph"
-      - "ph urine"
-      - "urinary ph"
 
   urine_specific_gravity:
     canonical_name: "Urine Specific Gravity"
@@ -839,8 +992,6 @@ mappings:
     unit: "ratio"
     aliases:
       - "specific gravity"
-      - "urine specific gravity"
-      - "sp. gravity"
       - "sg"
 
   urine_protein:
@@ -850,9 +1001,6 @@ mappings:
     unit: "mg/dL"
     aliases:
       - "urine protein"
-      - "protein urine"
-      - "urinary protein"
-      - "proteinuria"
 
   urine_glucose:
     canonical_name: "Urine Glucose"
@@ -861,9 +1009,6 @@ mappings:
     unit: "mg/dL"
     aliases:
       - "urine glucose"
-      - "glucose urine"
-      - "urinary glucose"
-      - "glycosuria"
 
   urine_ketones:
     canonical_name: "Urine Ketones"
@@ -872,13 +1017,11 @@ mappings:
     unit: "mg/dL"
     aliases:
       - "urine ketones"
-      - "ketones"
-      - "ketone bodies"
-      - "ketonuria"
 
 # =============================================================================
 # INFLAMMATORY MARKERS
 # =============================================================================
+
   crp:
     canonical_name: "C-Reactive Protein"
     loinc_code: "1988-5"
@@ -886,10 +1029,6 @@ mappings:
     unit: "mg/L"
     aliases:
       - "crp"
-      - "c-reactive protein"
-      - "c reactive protein"
-      - "hs-crp"
-      - "high sensitivity crp"
 
   procalcitonin:
     canonical_name: "Procalcitonin"
@@ -899,11 +1038,11 @@ mappings:
     aliases:
       - "procalcitonin"
       - "pct"
-      - "pro-calcitonin"
 
 # =============================================================================
-# PANCREATIC
+# PANCREATIC ENZYMES
 # =============================================================================
+
   amylase:
     canonical_name: "Amylase"
     loinc_code: "1798-8"
@@ -911,8 +1050,6 @@ mappings:
     unit: "U/L"
     aliases:
       - "amylase"
-      - "serum amylase"
-      - "s. amylase"
 
   lipase:
     canonical_name: "Lipase"
@@ -921,5 +1058,3 @@ mappings:
     unit: "U/L"
     aliases:
       - "lipase"
-      - "serum lipase"
-      - "s. lipase"

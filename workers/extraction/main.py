@@ -1,12 +1,13 @@
 """
-Worker for processing lab report documents.
+Worker for processing lab report documents - PRODUCTION VERSION.
 
-Handles the document processing queue, extracts lab data using the 3-pass pipeline,
-and saves normalized test results to the PatientTest table for global analytics.
+Uses Single Vision + Normalizer pipeline for extraction.
+Saves NORMALIZED test names to PatientTest for global analytics.
 """
 
 import json
 import time
+import re
 import logging
 from typing import Dict, Any, List, Optional
 from datetime import datetime
@@ -21,7 +22,7 @@ from backend.models.db import (
     StandardizedTestDefinition,
     TestSynonym
 )
-from workers.extraction.gemini import extract_lab_report
+from workers.extraction.single_vision_extractor import SingleVisionExtractor
 
 # Configure logging
 logging.basicConfig(
@@ -32,13 +33,26 @@ logger = logging.getLogger(__name__)
 
 settings = get_settings()
 
+# Initialize extractor once
+_extractor = None
+
+def get_extractor() -> SingleVisionExtractor:
+    """Get or create the production extractor."""
+    global _extractor
+    if _extractor is None:
+        _extractor = SingleVisionExtractor()
+    return _extractor
+
 
 def process_document(document_id: str) -> None:
     """
-    Process a single document through the extraction pipeline.
+    Process a single document through the production extraction pipeline.
     
-    Args:
-        document_id: UUID of the document to process
+    Pipeline:
+    1. Single Vision extraction (Gemini)
+    2. Deterministic normalization (YAML + Levenshtein)
+    3. Safety validation
+    4. Save to PatientTest with canonical names
     """
     # Rate Limiting
     if settings.gemini.rate_limit > 0:
@@ -54,7 +68,7 @@ def process_document(document_id: str) -> None:
             logger.error(f"Document {document_id} not found")
             return
 
-        # Helper to update processing stage in real-time
+        # Helper to update processing stage
         def update_stage(stage: str):
             doc.processing_stage = stage
             session.add(doc)
@@ -66,62 +80,77 @@ def process_document(document_id: str) -> None:
         update_stage("queued")
         
         try:
-            # Run extraction pipeline with stage callbacks
-            update_stage("preprocessing")
-            extraction_result = extract_lab_report(doc.file_path)
-            update_stage("saving")
+            # Run production extraction pipeline
+            update_stage("extracting")
+            extractor = get_extractor()
+            extraction_result = extractor.extract(doc.file_path)
+            update_stage("normalizing")
             
-            # Extract key fields from result
+            # Extract key fields
             data = extraction_result.data
             confidence = extraction_result.confidence
-            needs_review = extraction_result.needs_review
-            review_reason = extraction_result.review_reason
+            success = extraction_result.success
+            
+            # Determine review status
+            needs_review = not success
+            review_reason = ""
+            
+            if extraction_result.issues:
+                review_reason = "; ".join(extraction_result.issues[:3])
             
             # Log extraction summary
-            lab_results = data.get('lab_results', [])
-            if extraction_result.success:
-                standardization = data.get('metadata', {}).get('standardization', {})
+            lab_results = data.get('lab_results', []) if data else []
+            metadata = data.get('metadata', {}) if data else {}
+            
+            if success:
                 logger.info(
                     f"Document {document_id}: Extracted {len(lab_results)} tests, "
                     f"confidence={confidence:.2f}, "
-                    f"standardized={standardization.get('standardized_count', 0)}/{standardization.get('total_tests', 0)}"
+                    f"unknown={len(metadata.get('unknown_tests', []))}"
                 )
             else:
                 logger.warning(f"Document {document_id}: Extraction failed - {review_reason}")
-            
-            # Check for errors in data
-            if 'error' in data and not extraction_result.success:
                 needs_review = True
-                if not review_reason:
-                    review_reason = data.get('error', 'Unknown error')
 
-            # Create extraction result record with timing
+            # Create extraction result record
+            summary = extraction_result.summary or {}
             result = ExtractionResult(
                 document_id=document_id,
                 extracted_data=data,
                 confidence_score=confidence,
                 needs_review=needs_review,
                 review_reason=review_reason,
-                preprocessing_time=extraction_result.preprocessing_time,
-                pass1_time=extraction_result.pass1_time,
-                pass2_time=extraction_result.pass2_time,
-                pass3_time=extraction_result.pass3_time,
-                total_time=extraction_result.total_time
+                preprocessing_time=0.0,  # Combined in extraction_time
+                pass1_time=extraction_result.extraction_time,
+                pass2_time=extraction_result.normalization_time,
+                pass3_time=extraction_result.validation_time,
+                pass4_time=0.0,
+                total_time=extraction_result.total_time,
+                # Summary fields
+                report_type=summary.get('report_type'),
+                report_purpose=summary.get('report_purpose'),
+                abnormal_findings=summary.get('abnormal_findings', []),
+                manual_review_items=summary.get('manual_review_items', []),
+                priority_level=summary.get('priority_level')
             )
             session.add(result)
             
-            # Save normalized tests to PatientTest table
-            if extraction_result.success and lab_results:
-                _save_patient_tests(
+            update_stage("saving")
+            
+            # Save NORMALIZED tests to PatientTest table
+            if success and lab_results:
+                saved = _save_normalized_tests(
                     session=session,
                     document_id=document_id,
                     lab_results=lab_results,
-                    patient_info=data.get('patient_info', {})
+                    patient_info=data.get('patient_info', {}),
+                    source_filename=doc.filename
                 )
+                logger.info(f"Document {document_id}: Saved {saved} tests to PatientTest")
             
             # Update document status
-            doc.status = "completed" if extraction_result.success else "failed"
-            update_stage("completed" if extraction_result.success else "failed")
+            doc.status = "completed" if success else "failed"
+            update_stage("completed" if success else "failed")
             
             logger.info(f"Successfully processed document {document_id} (status: {doc.status})")
             
@@ -143,165 +172,213 @@ def process_document(document_id: str) -> None:
             session.commit()
 
 
-def _save_patient_tests(
+def _save_normalized_tests(
     session: Session,
     document_id: str,
     lab_results: List[Dict[str, Any]],
-    patient_info: Dict[str, Any]
+    patient_info: Dict[str, Any],
+    source_filename: Optional[str] = None
 ) -> int:
     """
-    Save extracted lab results to the PatientTest table for global analytics.
+    Save normalized lab results to PatientTest table.
     
-    Args:
-        session: Database session
-        document_id: Source document ID
-        lab_results: List of extracted lab results
-        patient_info: Patient information from extraction
-        
-    Returns:
-        Number of tests saved
+    Uses CANONICAL test names for global analytics and time-series tracking.
+    Different lab formats (RBC, Erythrocytes, etc.) all map to same canonical name.
     """
     saved_count = 0
     patient_name = patient_info.get('name')
     patient_id = patient_info.get('patient_id')
     
-    # Parse test date if available
-    test_date = None
-    date_str = patient_info.get('collection_date') or patient_info.get('report_date')
-    if date_str:
-        try:
-            # Try common date formats
-            for fmt in ['%Y-%m-%d', '%d-%m-%Y', '%d/%m/%Y', '%m/%d/%Y']:
-                try:
-                    test_date = datetime.strptime(date_str, fmt)
-                    break
-                except ValueError:
-                    continue
-        except:
-            pass
+    # Parse test date
+    test_date = _parse_date(patient_info.get('collection_date') or patient_info.get('report_date'))
     
     for result in lab_results:
         try:
-            original_name = result.get('test_name', result.get('original_name', ''))
-            if not original_name:
+            # Get both original and canonical names
+            original_name = result.get('original_name', '')
+            canonical_name = result.get('test_name', '')
+            
+            # Skip if no test name
+            if not canonical_name and not original_name:
                 continue
             
-            # Get standardization info
-            std_info = result.get('standardization', {})
-            is_standardized = std_info.get('is_standardized', False)
+            # Skip UNKNOWN tests for global analytics
+            if canonical_name == "UNKNOWN":
+                logger.debug(f"Skipping UNKNOWN test: {original_name}")
+                continue
             
-            # Find test definition if standardized
-            test_definition_id = None
-            if is_standardized:
-                canonical_name = result.get('test_name')
-                if canonical_name:
-                    definition = session.exec(
-                        select(StandardizedTestDefinition)
-                        .where(StandardizedTestDefinition.canonical_name == canonical_name)
-                    ).first()
-                    if definition:
-                        test_definition_id = definition.id
-            
-            # Parse value to determine type
+            # Parse value
             value_str = str(result.get('value', ''))
-            value_type = result.get('value_type', 'unknown')
-            numeric_value = None
-            text_value = None
+            numeric_value, value_type = _parse_value(value_str)
             
-            # Try to parse as numeric
-            try:
-                # Handle common number formats
-                clean_val = value_str.replace(',', '').replace(' ', '').strip()
-                # Remove common suffixes like [H], [L], etc.
-                import re
-                clean_val = re.sub(r'\s*\[.*?\]\s*$', '', clean_val)
-                numeric_value = float(clean_val)
-                if value_type == 'unknown':
-                    value_type = 'numeric'
-            except (ValueError, TypeError):
-                # Not a pure number - check if it's text or mixed
-                if value_type == 'unknown':
-                    # Check if contains any digits
-                    if any(c.isdigit() for c in value_str):
-                        value_type = 'mixed'
-                    else:
-                        value_type = 'text'
-                text_value = value_str
+            # Look up test definition by canonical name
+            test_definition_id = None
+            if canonical_name:
+                definition = session.exec(
+                    select(StandardizedTestDefinition)
+                    .where(StandardizedTestDefinition.canonical_name == canonical_name)
+                ).first()
+                if definition:
+                    test_definition_id = definition.id
             
-            # Create PatientTest record
+            # Determine standardization confidence
+            mapping_method = result.get('mapping_method', 'unknown')
+            std_confidence = {
+                'exact': 1.0,
+                'alias': 0.95,
+                'fuzzy': 0.8,
+                'llm': 0.7,
+                'unknown': 0.0
+            }.get(mapping_method, 0.5)
+            
+            # Create PatientTest record with CANONICAL name
             patient_test = PatientTest(
                 document_id=document_id,
+                source_filename=source_filename,
                 test_definition_id=test_definition_id,
                 patient_name=patient_name,
                 patient_id=patient_id,
-                original_test_name=result.get('original_name', original_name),
-                standardized_test_name=result.get('test_name') if is_standardized else None,
+                original_test_name=original_name,
+                standardized_test_name=canonical_name,  # CANONICAL NAME FOR GLOBAL ANALYTICS
                 value=value_str,
                 numeric_value=numeric_value,
-                text_value=text_value,
+                text_value=value_str if value_type == 'text' else None,
                 value_type=value_type,
                 unit=result.get('unit'),
                 reference_range=result.get('reference_range'),
                 flag=result.get('flag'),
                 category=result.get('category'),
                 loinc_code=result.get('loinc_code'),
-                method=result.get('test_method'),
-                standardization_confidence=std_info.get('confidence', 0.0),
-                match_type=std_info.get('match_type'),
-                test_date=test_date
+                standardization_confidence=std_confidence,
+                match_type=mapping_method,
+                test_date=test_date,
+                needs_review=result.get('needs_review', False)
             )
-            
             session.add(patient_test)
             saved_count += 1
             
-            # Save learned synonym if LLM matched
-            if std_info.get('match_type') == 'llm' and is_standardized:
-                _save_learned_synonym(
-                    session=session,
-                    original_term=result.get('original_name', original_name),
-                    canonical_name=result.get('test_name'),
-                    test_definition_id=test_definition_id,
-                    confidence=std_info.get('confidence', 0.8)
-                )
-            
         except Exception as e:
-            logger.warning(f"Failed to save test result: {e}")
+            logger.warning(f"Error saving test {result.get('test_name')}: {e}")
             continue
     
-    logger.info(f"Saved {saved_count} patient tests for document {document_id}")
+    session.commit()
     return saved_count
 
 
-def _save_learned_synonym(
-    session: Session,
-    original_term: str,
-    canonical_name: str,
-    test_definition_id: Optional[int],
-    confidence: float
-) -> None:
-    """
-    Save a learned synonym for future faster lookups.
+def _parse_date(date_str: Optional[str]) -> Optional[datetime]:
+    """Parse date string in common formats."""
+    if not date_str:
+        return None
     
-    When the LLM successfully maps an unknown term, we store it so
-    future occurrences can be matched with exact lookup.
+    formats = [
+        '%Y-%m-%d', '%d-%m-%Y', '%d/%m/%Y', '%m/%d/%Y',
+        '%Y/%m/%d', '%d %b %Y', '%d %B %Y', '%B %d, %Y'
+    ]
+    
+    for fmt in formats:
+        try:
+            return datetime.strptime(date_str.strip(), fmt)
+        except ValueError:
+            continue
+    
+    return None
+
+
+def _parse_value(value_str: str) -> tuple:
     """
+    Parse value string to numeric and determine type.
+    
+    Returns:
+        (numeric_value, value_type)
+    """
+    if not value_str:
+        return None, 'unknown'
+    
+    # Clean value
+    clean_val = value_str.strip()
+    clean_val = re.sub(r'\s*\[.*?\]\s*$', '', clean_val)  # Remove [H], [L]
+    clean_val = re.sub(r'[↑↓HLhl\*]$', '', clean_val)     # Remove flags
+    clean_val = clean_val.replace(',', '').strip()
+    
     try:
-        # Check if already exists
-        existing = session.exec(
-            select(TestSynonym)
-            .where(TestSynonym.original_term == original_term.lower())
-        ).first()
-        
-        if not existing:
-            synonym = TestSynonym(
-                original_term=original_term.lower(),
-                canonical_name=canonical_name,
-                test_definition_id=test_definition_id,
-                confidence=confidence,
-                source='llm'
-            )
-            session.add(synonym)
-            logger.info(f"Learned new synonym: '{original_term}' -> '{canonical_name}'")
-            
-    except Exception as e:
-        logger.debug(f"Could not save synonym: {e}")
+        numeric = float(clean_val)
+        return numeric, 'numeric'
+    except ValueError:
+        # Check for mixed (contains digits)
+        if any(c.isdigit() for c in value_str):
+            return None, 'mixed'
+        return None, 'text'
+
+
+def get_global_test_trends(
+    session: Session,
+    canonical_test_name: str,
+    patient_id: Optional[str] = None,
+    limit: int = 50
+) -> List[Dict[str, Any]]:
+    """
+    Get time-series data for a test across all reports.
+    
+    Uses CANONICAL test name to unify different lab formats.
+    
+    Example: get_global_test_trends(session, "Hemoglobin", patient_id="P123")
+    Returns all Hemoglobin values even if labs called it "Hb", "HGB", or "Haemoglobin"
+    """
+    query = select(PatientTest).where(
+        PatientTest.standardized_test_name == canonical_test_name
+    )
+    
+    if patient_id:
+        query = query.where(PatientTest.patient_id == patient_id)
+    
+    query = query.order_by(PatientTest.test_date.desc()).limit(limit)
+    
+    results = session.exec(query).all()
+    
+    return [
+        {
+            'date': r.test_date,
+            'value': r.numeric_value or r.value,
+            'unit': r.unit,
+            'flag': r.flag,
+            'lab_name': r.original_test_name,  # What the lab called it
+            'document_id': r.document_id
+        }
+        for r in results
+    ]
+
+
+def get_patient_all_tests(
+    session: Session,
+    patient_id: str
+) -> Dict[str, List[Dict[str, Any]]]:
+    """
+    Get all tests for a patient, grouped by CANONICAL name.
+    
+    Returns: {
+        "Hemoglobin": [values from different reports...],
+        "Red Blood Cell Count": [values...],
+        ...
+    }
+    """
+    query = select(PatientTest).where(
+        PatientTest.patient_id == patient_id
+    ).order_by(PatientTest.test_date.desc())
+    
+    results = session.exec(query).all()
+    
+    grouped = {}
+    for r in results:
+        name = r.standardized_test_name or r.original_test_name
+        if name not in grouped:
+            grouped[name] = []
+        grouped[name].append({
+            'date': r.test_date,
+            'value': r.numeric_value or r.value,
+            'unit': r.unit,
+            'flag': r.flag,
+            'original_name': r.original_test_name,
+            'document_id': r.document_id
+        })
+    
+    return grouped

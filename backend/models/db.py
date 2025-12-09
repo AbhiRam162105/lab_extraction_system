@@ -29,9 +29,18 @@ class ExtractionResult(SQLModel, table=True):
     pass1_time: Optional[float] = Field(default=None)  # Vision extraction
     pass2_time: Optional[float] = Field(default=None)  # Structure + validation
     pass3_time: Optional[float] = Field(default=None)  # Standardization
+    pass4_time: Optional[float] = Field(default=None)  # Summary generation
     total_time: Optional[float] = Field(default=None)  # Total processing time
     
+    # Report summary (Pass 4)
+    report_type: Optional[str] = Field(default=None)  # e.g., "Complete Blood Count"
+    report_purpose: Optional[str] = Field(default=None)  # What the test is for
+    abnormal_findings: List[str] = Field(default=[], sa_column=Column(JSON))
+    manual_review_items: List[str] = Field(default=[], sa_column=Column(JSON))
+    priority_level: Optional[str] = Field(default=None)  # normal/attention/urgent
+    
     created_at: datetime = Field(default_factory=datetime.utcnow)
+
 
 
 class StandardizedTestDefinition(SQLModel, table=True):
@@ -69,6 +78,7 @@ class PatientTest(SQLModel, table=True):
     
     # Link to source document
     document_id: str = Field(foreign_key="document.id", index=True)
+    source_filename: Optional[str] = Field(default=None, index=True)  # Original filename
     
     # Link to standardized test definition (nullable for unmapped tests)
     test_definition_id: Optional[int] = Field(
