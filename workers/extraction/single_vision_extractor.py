@@ -139,8 +139,25 @@ class SingleVisionExtractor:
                     issues=quality.issues
                 )
             
-            # STEP 2: Single Vision Extraction (API Call 1)
-            logger.info("[Step 2] Running Gemini Vision extraction")
+            # STEP 2a: Verify this is a medical report (quick check)
+            logger.info("[Step 2a] Verifying document is a medical report")
+            is_medical, doc_type = self._verify_medical_report(image)
+            
+            if not is_medical:
+                logger.warning(f"Document is not a medical report: {doc_type}")
+                return VisionExtractionResult(
+                    success=False,
+                    data={'error': f'Not a medical lab report: {doc_type}', 'document_type': doc_type},
+                    confidence=0.0,
+                    extraction_time=0.0,
+                    normalization_time=0.0,
+                    validation_time=0.0,
+                    total_time=time.time() - total_start,
+                    issues=[f'Document appears to be: {doc_type}, not a medical lab report']
+                )
+            
+            # STEP 2b: Single Vision Extraction (API Call 2)
+            logger.info("[Step 2b] Running Gemini Vision extraction")
             extraction_start = time.time()
             
             raw_results = self._vision_extract(image)
@@ -296,6 +313,65 @@ class SingleVisionExtractor:
                 total_time=time.time() - total_start,
                 issues=[str(e)]
             )
+    
+    def _verify_medical_report(self, image: Image.Image) -> tuple:
+        """
+        Quick verification that the document is a medical lab report.
+        
+        Returns:
+            (is_medical_report: bool, document_type: str)
+        """
+        verification_prompt = """Look at this document and answer with ONLY a JSON response:
+
+{
+  "is_medical_lab_report": true/false,
+  "document_type": "brief description of what this document is",
+  "confidence": 0.0 to 1.0
+}
+
+A medical lab report typically contains:
+- Patient information (name, ID, date)
+- Laboratory test names (CBC, hemoglobin, glucose, etc.)
+- Test values with units and reference ranges
+- Hospital/lab name
+
+If this is NOT a medical lab report (e.g., invoice, prescription, X-ray, random image), set is_medical_lab_report to false.
+
+Return ONLY the JSON, no other text."""
+
+        try:
+            # Rate limiting
+            self.rate_limiter.acquire()
+            
+            response = self.model.generate_content([verification_prompt, image])
+            result_text = self._clean_json(response.text.strip())
+            
+            self.rate_limiter.report_success()
+            
+            result = json.loads(result_text)
+            
+            is_medical = result.get('is_medical_lab_report', False)
+            doc_type = result.get('document_type', 'Unknown document')
+            confidence = result.get('confidence', 0.5)
+            
+            logger.info(f"Document verification: is_medical={is_medical}, type='{doc_type}', confidence={confidence}")
+            
+            # Only accept if confident it's a medical report
+            if is_medical and confidence >= 0.7:
+                return True, doc_type
+            else:
+                return False, doc_type
+                
+        except json.JSONDecodeError as e:
+            logger.warning(f"Failed to parse verification response: {e}")
+            # If we can't parse, assume it might be a medical report (fail open)
+            return True, "Verification inconclusive"
+        except Exception as e:
+            if '429' in str(e) or 'rate' in str(e).lower():
+                self.rate_limiter.report_rate_limit_error()
+            logger.warning(f"Document verification failed: {e}")
+            # Fail open - attempt extraction
+            return True, "Verification failed"
     
     def _vision_extract(self, image: Image.Image) -> Dict[str, Any]:
         """Single Gemini Vision call to extract everything."""

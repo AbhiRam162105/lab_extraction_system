@@ -96,8 +96,37 @@ with tab1:
             try:
                 response = requests.post(f"{API_URL}/upload", files=files)
                 if response.status_code == 200:
-                    st.success(f"Successfully uploaded {len(uploaded_files)} files!")
-                    st.json(response.json())
+                    result = response.json()
+                    
+                    # Show main message
+                    message = result.get('message', 'Upload complete')
+                    new_count = result.get('new_files_count', 0)
+                    dup_count = result.get('duplicates_count', 0)
+                    
+                    if dup_count == 0:
+                        st.success(f"✅ {message}")
+                    elif new_count == 0:
+                        st.warning(f"⚠️ {message}")
+                    else:
+                        st.info(f"ℹ️ {message}")
+                    
+                    # Show duplicate details if any
+                    if dup_count > 0:
+                        with st.expander(f"🔁 {dup_count} Duplicate File(s) Detected", expanded=True):
+                            for dup in result.get('duplicates', []):
+                                st.warning(
+                                    f"**'{dup['uploaded_filename']}'** is a duplicate of "
+                                    f"**'{dup['existing_filename']}'**\n\n"
+                                    f"- Previously uploaded: {dup.get('upload_date', 'Unknown')[:19] if dup.get('upload_date') else 'Unknown'}\n"
+                                    f"- Status: {dup.get('status', 'Unknown')}\n"
+                                    f"- Skipped (no reprocessing needed)"
+                                )
+                    
+                    # Show new files queued
+                    if new_count > 0:
+                        with st.expander(f"📄 {new_count} New File(s) Queued"):
+                            for nf in result.get('new_files', []):
+                                st.success(f"✓ {nf['filename']} - Queued for processing")
                 else:
                     st.error(f"Upload failed: {response.text}")
             except Exception as e:

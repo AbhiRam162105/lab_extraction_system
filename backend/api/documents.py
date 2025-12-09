@@ -20,16 +20,24 @@ settings = get_settings()
 router = APIRouter(tags=["Documents"])
 
 
-@router.post("/upload", response_model=List[Document])
+@router.post("/upload")
 def upload_files(
     files: List[UploadFile] = File(...),
     session: Session = Depends(get_session),
     queue: Queue = Depends(get_queue)
 ):
-    """Upload lab report files for processing."""
+    """
+    Upload lab report files for processing.
+    
+    Returns info about:
+    - new_files: Files that were uploaded and queued for processing
+    - duplicates: Files that were already uploaded previously (skipped)
+    """
     from backend.utils.image_optimizer import get_optimizer
     
     uploaded_docs = []
+    duplicate_info = []  # Track duplicates to inform user
+    new_files = []       # Track actually new files
     storage_path = Path(settings.storage.base_path) / settings.storage.bucket
     storage_path.mkdir(parents=True, exist_ok=True)
     optimizer = get_optimizer()
@@ -56,12 +64,20 @@ def upload_files(
             if temp_location.exists():
                 temp_location.unlink()
             
-            # If duplicate, link to existing document
+            # If duplicate, find existing document and inform user
             if is_duplicate:
                 existing_doc = session.exec(
                     select(Document).where(Document.file_path == optimized_path)
                 ).first()
                 if existing_doc:
+                    duplicate_info.append({
+                        "uploaded_filename": file.filename,
+                        "existing_filename": existing_doc.filename,
+                        "existing_id": existing_doc.id,
+                        "upload_date": existing_doc.upload_date.isoformat() if existing_doc.upload_date else None,
+                        "status": existing_doc.status,
+                        "message": f"'{file.filename}' is a duplicate of '{existing_doc.filename}' (uploaded previously)"
+                    })
                     uploaded_docs.append(existing_doc)
                     continue
             
@@ -72,10 +88,15 @@ def upload_files(
                 file_path=optimized_path,
                 content_type=file.content_type or "application/octet-stream",
                 status="queued",
-                phash=stats.get('phash') if stats else None  # Actual perceptual hash
+                phash=stats.get('phash') if stats else None
             )
             session.add(doc)
             uploaded_docs.append(doc)
+            new_files.append({
+                "id": file_id,
+                "filename": file.filename,
+                "status": "queued"
+            })
             
             # Enqueue task with 600s timeout
             queue.enqueue('workers.extraction.main.process_document', file_id, job_id=file_id, job_timeout=600)
@@ -98,12 +119,37 @@ def upload_files(
             )
             session.add(doc)
             uploaded_docs.append(doc)
+            new_files.append({
+                "id": file_id,
+                "filename": file.filename,
+                "status": "queued"
+            })
             queue.enqueue('workers.extraction.main.process_document', file_id, job_id=file_id, job_timeout=600)
 
     session.commit()
     for doc in uploaded_docs:
         session.refresh(doc)
-    return uploaded_docs
+    
+    # Return detailed response with duplicate info
+    return {
+        "total_uploaded": len(files),
+        "new_files_count": len(new_files),
+        "duplicates_count": len(duplicate_info),
+        "new_files": new_files,
+        "duplicates": duplicate_info,
+        "documents": uploaded_docs,
+        "message": _generate_upload_message(len(new_files), len(duplicate_info))
+    }
+
+
+def _generate_upload_message(new_count: int, dup_count: int) -> str:
+    """Generate user-friendly message about upload results."""
+    if dup_count == 0:
+        return f"Successfully queued {new_count} file(s) for processing."
+    elif new_count == 0:
+        return f"All {dup_count} file(s) were already uploaded previously. No new processing needed."
+    else:
+        return f"Queued {new_count} new file(s). {dup_count} file(s) were duplicates (already uploaded)."
 
 
 @router.get("/documents", response_model=List[Document])
