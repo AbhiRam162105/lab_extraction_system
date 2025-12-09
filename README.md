@@ -22,6 +22,8 @@
 | ⚡ **Redis Caching** | Two-tier caching reduces redundant API calls |
 | 📈 **Batch Processing** | Upload multiple files with progress tracking |
 
+![Dashboard Screenshot](docs/home.png)
+
 ---
 
 ## 🚀 Quick Start
