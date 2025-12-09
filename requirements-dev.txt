@@ -1,0 +1,7 @@
+pytest
+pytest-mock
+playwright
+responses
+redis
+rq
+httpx

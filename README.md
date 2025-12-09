@@ -270,15 +270,57 @@ curl "http://localhost:6000/api/v1/results/{document_id}"
 
 ## 🧪 Testing
 
+The project includes a comprehensive test suite with **80+ tests** covering unit, integration, and E2E testing.
+
+### Test Structure
+
+```
+tests/
+├── conftest.py              # Shared fixtures (mocked Redis, Gemini, images)
+├── unit/                    # 80 unit tests
+│   ├── test_rate_limiter.py    # Rate limiting (14 tests)
+│   ├── test_cache_manager.py   # Caching (12 tests)
+│   ├── test_preprocessing.py   # Image preprocessing (11 tests)
+│   ├── test_ocr_quality.py     # Quality gate (20 tests)
+│   └── test_strict_normalizer.py # Normalization (23 tests)
+├── integration/             # API endpoint tests
+│   └── test_api_endpoints.py
+├── e2e/                     # End-to-end pipeline tests
+│   └── test_extraction_pipeline.py
+└── fixtures/
+    └── sample_lab_reports.py # Sample test data
+```
+
+### Running Tests
+
 ```bash
 # Activate virtual environment
 source venv/bin/activate
 
-# Run tests
-pytest tests/ -v
+# Run all unit tests
+pytest tests/unit/ -v
+
+# Run specific test file
+pytest tests/unit/test_rate_limiter.py -v
 
 # Run with coverage
-pytest tests/ --cov=backend --cov=workers
+pytest tests/unit/ --cov=backend --cov=workers --cov-report=term-missing
+
+# Run all tests (requires services running)
+pytest tests/ -v
+```
+
+### Test Markers
+
+```bash
+# Run only unit tests
+pytest -m unit
+
+# Run only integration tests
+pytest -m integration
+
+# Run only E2E tests
+pytest -m e2e
 ```
 
 ---
