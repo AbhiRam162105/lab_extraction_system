@@ -6,7 +6,8 @@ This document explains how a request moves through the system and maps each repo
 
 - **Startup**
   - `start.sh` boots Redis/PostgreSQL (if running locally), then launches:
-    - `backend/main.py` via `uvicorn backend.main:app` → `on_startup()` → `create_db_and_tables()` (in `backend/core/database.py`) → `_init_test_definitions()` loads YAML from `config/test_mappings.yaml` into `StandardizedTestDefinition`.
+    - `backend/main.py` via `uvicorn backend.main:app`.
+      - `on_startup()` → `create_db_and_tables()` (in `backend/core/database.py`) → `_init_test_definitions()` loads YAML from `config/test_mappings.yaml` into `StandardizedTestDefinition`.
     - `workers/extraction/main.py` via `rq worker` → waits for jobs named `process_document`.
     - `frontend_app/main.py` via `streamlit run` to serve the UI.
 - **Upload & extraction path**
@@ -38,7 +39,7 @@ This document explains how a request moves through the system and maps each repo
   - `frontend_app/pages/2_Performance.py` monitors:
     - `/documents` and `/tests/stats` for counts.
     - `/tests/timing-stats` to plot per-pass timings.
-  - `frontend_app/pages/3_Approach_Comparison.py` posts to `/compare-approaches` (to be served by a compatible backend route if added).
+  - `frontend_app/pages/3_Approach_Comparison.py` posts to `/compare-approaches` (deployment must provide the matching backend handler for this comparison workflow).
 - **Storage & ops**
   - `backend/api/storage.py` exposes `/storage/stats`, `/storage/cleanup`, `/storage/cache-stats`, `/storage/rate-limit-stats`:
     - Calls `_count_files_by_type()`, interacts with `Document` records, and surfaces stats from `CacheManager.get_stats()` and `AdaptiveRateLimiter.get_stats()`.
