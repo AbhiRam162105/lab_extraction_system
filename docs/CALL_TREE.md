@@ -39,7 +39,7 @@ This document explains how a request moves through the system and maps each repo
   - `frontend_app/pages/2_Performance.py` monitors:
     - `/documents` and `/tests/stats` for counts.
     - `/tests/timing-stats` to plot per-pass timings.
-  - `frontend_app/pages/3_Approach_Comparison.py` posts to `/compare-approaches` (deployment must provide the matching backend handler for this comparison workflow).
+  - `frontend_app/pages/3_Approach_Comparison.py` posts to `/compare-approaches`; the baseline backend in this repo does not define that route, so deployments either need to add the handler or disable the comparison UI.
 - **Storage & ops**
   - `backend/api/storage.py` exposes `/storage/stats`, `/storage/cleanup`, `/storage/cache-stats`, `/storage/rate-limit-stats`:
     - Calls `_count_files_by_type()`, interacts with `Document` records, and surfaces stats from `CacheManager.get_stats()` and `AdaptiveRateLimiter.get_stats()`.
