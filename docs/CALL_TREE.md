@@ -18,8 +18,8 @@ This document explains how a request moves through the system and maps each repo
   - Background worker `workers/extraction/main.py::process_document()`:
     - Looks up the `Document`, marks stages, then calls `SingleVisionExtractor.extract()` (in `workers/extraction/single_vision_extractor.py`).
     - The extractor pipeline triggers:
-      - `preprocess_image()` from `workers/extraction.preprocessing.ImagePreprocessor`.
-      - OCR quality gating via `workers/extraction/ocr_quality.evaluate_ocr_quality`.
+      - `workers.extraction.preprocessing.preprocess_image()` for image cleanup.
+      - OCR quality gating via `workers.extraction.ocr_quality.evaluate_ocr_quality()`.
       - Deterministic normalization with `StrictNormalizer.normalize()` (`workers/extraction/strict_normalizer.py`).
       - Panel completeness checks using `validate_panel_completeness()` (`workers/extraction/panel_validator.py`).
       - Summary generation via `generate_safe_summary()` (`workers/extraction/safe_summary.py`).
