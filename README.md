@@ -22,6 +22,8 @@
 | ⚡ **Redis Caching** | Two-tier caching reduces redundant API calls |
 | 📈 **Batch Processing** | Upload multiple files with progress tracking |
 
+Looking for a file-by-file map? See the [call tree and repository guide](docs/CALL_TREE.md).
+
 ![Dashboard Screenshot](docs/home.png)
 
 ---
