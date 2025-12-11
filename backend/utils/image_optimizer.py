@@ -18,13 +18,8 @@ from dataclasses import dataclass
 
 from PIL import Image
 import io
+import imagehash
 
-# Optional: perceptual hashing for similar image detection
-try:
-    import imagehash
-    IMAGEHASH_AVAILABLE = True
-except ImportError:
-    IMAGEHASH_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +37,7 @@ class OptimizationConfig:
     min_dimension: int = 500   # Don't resize below this
     
     # Cleanup settings
-    delete_originals_after_days: int = 30  # Delete originals after processing
+    delete_originals_after_days: int = 10  # Delete originals after processing
     delete_processed_after_days: int = 90  # Delete everything after 90 days
     
     # Deduplication
@@ -106,9 +101,6 @@ class ImageOptimizer:
         Returns:
             16-character hex string of pHash, or None if unavailable
         """
-        if not IMAGEHASH_AVAILABLE:
-            logger.debug("imagehash not available, skipping pHash")
-            return None
         
         try:
             img = Image.open(file_path)

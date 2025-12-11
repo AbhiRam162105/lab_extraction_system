@@ -15,6 +15,7 @@ from backend.core.config import get_settings
 from backend.core.database import get_session
 from backend.core.queue import get_queue
 from backend.models.db import Document, ExtractionResult
+from backend.utils.image_optimizer import get_optimizer
 
 settings = get_settings()
 router = APIRouter(tags=["Documents"])
@@ -33,7 +34,7 @@ def upload_files(
     - new_files: Files that were uploaded and queued for processing
     - duplicates: Files that were already uploaded previously (skipped)
     """
-    from backend.utils.image_optimizer import get_optimizer
+    
     
     uploaded_docs = []
     duplicate_info = []  # Track duplicates to inform user
