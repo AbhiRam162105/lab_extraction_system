@@ -46,8 +46,7 @@ QUALITY_THRESHOLDS = {
     'brightness_max': 220,
     'text_density_min': 0.03,
     'skew_angle_max': 5.0,       
-    'noise_threshold': 0.15,     
-    'edge_density_min': 0.02,    
+    'noise_threshold': 0.15      
 }
 
 
@@ -67,13 +66,14 @@ def evaluate_ocr_quality(image: Image.Image) -> QualityResult:
     needs_preprocessing = False
     
     # Convert to numpy for analysis
+    # Redundant check, but kept for clarity
     if image.mode == 'RGBA':
         # Convert RGBA to RGB first
         rgb_image = Image.new('RGB', image.size, (255, 255, 255))
         rgb_image.paste(image, mask=image.split()[3])
         img_array = np.array(rgb_image.convert('L'))
     else:
-        img_array = np.array(image.convert('L'))  # Grayscale
+        img_array = np.array(image.convert('L'))  # THis line is sufficient
     
     # 1. Check resolution
     width, height = image.size
@@ -86,7 +86,7 @@ def evaluate_ocr_quality(image: Image.Image) -> QualityResult:
         issues.append(f"Low resolution: {width}x{height} (min: {QUALITY_THRESHOLDS['min_resolution']})")
         needs_preprocessing = True
     
-    # 2. Check blur using Laplacian variance (STRICTER)
+    # 2. Check blur using Laplacian variance
     blur_score = _calculate_blur_score(img_array)
     metrics['blur_score'] = blur_score
     
@@ -109,7 +109,7 @@ def evaluate_ocr_quality(image: Image.Image) -> QualityResult:
     elif text_clarity < 0.55:
         issues.append(f"Low text clarity: {text_clarity:.2f} - OCR accuracy may be affected")
     
-    # 3. Check contrast (STRICTER - both min and max)
+    # 3. Check contrast
     contrast = float(np.std(img_array))
     metrics['contrast'] = contrast
     
@@ -121,7 +121,7 @@ def evaluate_ocr_quality(image: Image.Image) -> QualityResult:
         # High contrast often means noisy scan
         needs_preprocessing = True
     
-    # 4. Check brightness (STRICTER)
+    # 4. Check brightness
     brightness = float(np.mean(img_array))
     metrics['brightness'] = brightness
     
@@ -159,7 +159,7 @@ def evaluate_ocr_quality(image: Image.Image) -> QualityResult:
     uniform_ratio = _check_uniform_regions(img_array)
     metrics['uniform_ratio'] = uniform_ratio
     
-    if uniform_ratio > 0.5:
+    if uniform_ratio > 0.8:
         issues.append("Large uniform regions detected - possible scanning issue")
     
     # Calculate overall quality score
@@ -321,6 +321,7 @@ def _estimate_text_clarity(img_array: np.ndarray) -> float:
         # (typical for text strokes)
         angle_mod = np.abs(np.mod(angles, np.pi/2))  # Distance from nearest 90-degree axis
         coherence = 1.0 - (np.mean(angle_mod) / (np.pi/4))  # 0 if random, 1 if aligned
+        ## THis can be skipped for now
         
         # Also check edge strength consistency
         # Noisy images have high variance in edge strength
@@ -328,7 +329,7 @@ def _estimate_text_clarity(img_array: np.ndarray) -> float:
         edge_consistency = max(0.0, 1.0 - edge_variance / 2.0)
         
         # Combine metrics
-        clarity = 0.6 * coherence + 0.4 * edge_consistency
+        clarity = 0.6 * coherence + 0.4 * edge_consistency ## Check for changes 
         
         return max(0.0, min(1.0, clarity))
         
