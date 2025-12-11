@@ -24,7 +24,6 @@ imagehash
 zstandard
 
 # Text matching for standardization
-rapidfuzz
 sentence-transformers
 
 # Frontend

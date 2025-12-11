@@ -478,7 +478,6 @@ docker-compose logs backend
 - [Google Gemini](https://deepmind.google/technologies/gemini/) - Vision AI
 - [FastAPI](https://fastapi.tiangolo.com/) - Backend framework
 - [Streamlit](https://streamlit.io/) - Frontend
-- [RapidFuzz](https://github.com/maxbachmann/RapidFuzz) - Fuzzy matching
 - [LOINC](https://loinc.org/) - Medical test standardization
 
 ---
