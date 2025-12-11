@@ -22,7 +22,14 @@
 | ⚡ **Redis Caching** | Two-tier caching reduces redundant API calls |
 | 📈 **Batch Processing** | Upload multiple files with progress tracking |
 
-Looking for a file-by-file map? See the [call tree and repository guide](docs/CALL_TREE.md).
+### 📚 Documentation
+
+| Document | Description |
+|----------|-------------|
+| [Configuration Guide](docs/CONFIGURATION.md) | All settings, thresholds, and tuning options |
+| [Image Processing](docs/IMAGE_PROCESSING.md) | Quality checks, preprocessing algorithms, pipelines |
+| [System Architecture](docs/CALL_TREE.md) | Call tree, request flows, file-by-file guide |
+| [Unused Features](docs/UNUSED_FEATURES.md) | Features coded but not wired up |
 
 ![Dashboard Screenshot](docs/home.png)
 
