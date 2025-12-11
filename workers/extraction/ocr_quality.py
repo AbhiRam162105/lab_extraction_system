@@ -37,17 +37,17 @@ class QualityResult:
 # =============================================================================
 
 QUALITY_THRESHOLDS = {
-    'min_resolution': 400,       # Minimum dimension (was 200)
-    'blur_score': 50,            # Laplacian variance - WARNING threshold
-    'blur_score_critical': 25,   # Below this = definitely unreadable
-    'contrast_min': 35,          # Standard deviation (was 20)
-    'contrast_max': 90,          # Maximum contrast (detect over-processed)
-    'brightness_min': 50,        # Minimum brightness (was 30)
-    'brightness_max': 220,       # Maximum brightness (was 240)
-    'text_density_min': 0.03,    # Minimum text density (was 0.02)
-    'skew_angle_max': 5.0,       # Maximum skew angle in degrees
-    'noise_threshold': 0.15,     # Maximum noise level
-    'edge_density_min': 0.02,    # Minimum edge density for text
+    'min_resolution': 400,       
+    'blur_score': 50,            
+    'blur_score_critical': 25,   
+    'contrast_min': 35,          
+    'contrast_max': 90,          
+    'brightness_min': 50,        
+    'brightness_max': 220,
+    'text_density_min': 0.03,
+    'skew_angle_max': 5.0,       
+    'noise_threshold': 0.15,     
+    'edge_density_min': 0.02,    
 }
 
 
