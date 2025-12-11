@@ -473,13 +473,7 @@ docker-compose logs backend
 
 ---
 
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
-
-## 🙏 Acknowledgments
+##  Acknowledgments
 
 - [Google Gemini](https://deepmind.google/technologies/gemini/) - Vision AI
 - [FastAPI](https://fastapi.tiangolo.com/) - Backend framework
@@ -488,7 +482,3 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [LOINC](https://loinc.org/) - Medical test standardization
 
 ---
-
-<p align="center">
-  Made with ❤️ for healthcare data interoperability
-</p>
