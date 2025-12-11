@@ -50,6 +50,8 @@ logs/
 # Storage
 storage/lab-reports/*
 !storage/lab-reports/.gitkeep
+storage/cache/*
+!storage/cache/.gitkeep
 
 # Test
 test_results/

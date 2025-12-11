@@ -353,6 +353,7 @@ Return ONLY the JSON, no other text."""
             is_medical = result.get('is_medical_lab_report', False)
             doc_type = result.get('document_type', 'Unknown document')
             confidence = result.get('confidence', 0.5)
+            # if not extracted assume 50-50
             
             logger.info(f"Document verification: is_medical={is_medical}, type='{doc_type}', confidence={confidence}")
             
@@ -389,7 +390,8 @@ Return ONLY the JSON, no other text."""
             
             # Clean JSON
             result_text = self._clean_json(result_text)
-            
+            # Removes markdown code block formatting that Gemini often adds
+    
             return json.loads(result_text)
             
         except json.JSONDecodeError as e:

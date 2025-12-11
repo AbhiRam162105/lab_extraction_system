@@ -86,34 +86,101 @@ docker-compose up --build
 
 ## 📋 How It Works
 
-### Processing Pipeline
+### System Architecture
 
+```mermaid
+graph TB
+    UI[Streamlit UI] --> API[FastAPI Backend]
+    API --> DOCS[Documents API]
+    API --> TESTS[Tests API]
+    API --> STORAGE[Storage API]
+    DOCS --> QUEUE[Redis Queue]
+    QUEUE --> WORKER[RQ Worker]
+    WORKER --> GEMINI[Gemini Vision API]
+    WORKER --> DB[(PostgreSQL)]
+    API --> DB
+    WORKER --> CACHE[(Redis Cache)]
+    WORKER --> FILES[(File Storage)]
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                    EXTRACTION PIPELINE                          │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  1. QUALITY GATE          Check blur, contrast, noise           │
-│         ↓                 Reject unreadable images              │
-│                                                                 │
-│  2. MEDICAL VERIFICATION  Confirm it's a lab report              │
-│         ↓                 Skip invoices, X-rays, etc.           │
-│                                                                 │
-│  3. VISION EXTRACTION     Gemini API call                       │
-│         ↓                 Extract patient info + tests          │
-│                                                                 │
-│  4. NORMALIZATION         Standardize test names                │
-│         ↓                 Map to LOINC codes                    │
-│                                                                 │
-│  5. VALIDATION            LLM verification pass                 │
-│         ↓                 Check value ranges                    │
-│                                                                 │
-│  6. PANEL CHECK           Verify panel completeness             │
-│         ↓                 Flag missing CBC/LFT tests            │
-│                                                                 │
-│  7. PATIENT MATCHING      Link to existing patients             │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
+
+### Extraction Pipeline
+
+```mermaid
+graph TD
+    A[Lab Report Image] --> B[Quality Gate]
+    B -->|Pass| C[Medical Verification]
+    B -->|Fail| X[Reject Image]
+    C -->|Is Lab Report| D[Vision Extraction]
+    C -->|Not Lab Report| Y[Skip Document]
+    D --> E[Normalization]
+    E --> F[Validation]
+    F --> G[Panel Check]
+    G --> H[Output JSON]
+```
+
+**Pipeline Steps:**
+1. **Quality Gate** - Check blur, contrast, noise
+2. **Medical Verification** - Confirm it is a lab report
+3. **Vision Extraction** - Gemini API extracts patient info and tests
+4. **Normalization** - YAML lookup, Levenshtein matching, LLM fallback
+5. **Validation** - LLM verification, value range checks
+6. **Panel Check** - Verify completeness, flag missing tests
+7. **Output** - Structured JSON and clinical summary
+
+### Complete Request Flow
+
+```mermaid
+sequenceDiagram
+    User->>Frontend: Upload Lab Report
+    Frontend->>API: POST /upload
+    API->>DB: Save Document
+    API->>Queue: Enqueue Job
+    API-->>Frontend: Return doc_id
+    Queue->>Worker: process_document
+    Worker->>Gemini: Extract with Vision
+    Gemini-->>Worker: Raw Results
+    Worker->>DB: Save Results
+    Frontend->>API: GET /results/id
+    API->>DB: Query Results
+    DB-->>API: Return Data
+    API-->>Frontend: JSON Response
+    Frontend-->>User: Display Results
+```
+
+### Data Models
+
+```mermaid
+erDiagram
+    Document ||--o{ ExtractionResult : has
+    Document ||--o{ PatientTest : contains
+    PatientTest }o--|| StandardizedTestDefinition : maps_to
+    
+    Document {
+        uuid id
+        string filename
+        string status
+    }
+    
+    ExtractionResult {
+        uuid id
+        uuid document_id
+        json normalized_results
+        float confidence
+    }
+    
+    PatientTest {
+        uuid id
+        string patient_id
+        string test_name
+        float value
+        string unit
+    }
+    
+    StandardizedTestDefinition {
+        uuid id
+        string canonical_name
+        string loinc_code
+    }
 ```
 
 ### Quality Gate Criteria
@@ -174,7 +241,7 @@ lab_extraction_system/
 ```bash
 # .env file
 GEMINI__API_KEY=your_gemini_api_key_here    # Required!
-GEMINI__MODEL=gemma-3-27b-it                # or gemini-1.5-flash
+GEMINI__MODEL=gemma-3-27b-it                # or gemini-2.5-flash
 ```
 
 ### Optional Settings
