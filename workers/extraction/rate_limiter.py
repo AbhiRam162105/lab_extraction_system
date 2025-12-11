@@ -61,6 +61,7 @@ class AdaptiveRateLimiter:
         cutoff = time.time() - self.config.window_seconds
         while self._requests and self._requests[0] < cutoff:
             self._requests.popleft()
+    # cleans old requests from 60 seconds before 
     
     def _wait_time(self) -> float:
         self._clean_old_requests()
@@ -79,17 +80,19 @@ class AdaptiveRateLimiter:
                 self._clean_old_requests()
             self._requests.append(time.time())
     
-    async def acquire_async(self) -> None:
-        """Async version of acquire."""
-        async with self._async_lock_instance:
-            with self._lock:
-                wait_time = self._wait_time()
-            if wait_time > 0:
-                logger.info(f"Rate limit: waiting {wait_time:.1f}s")
-                await asyncio.sleep(wait_time)
-            with self._lock:
-                self._clean_old_requests()
-                self._requests.append(time.time())
+    # async def acquire_async(self) -> None:
+    #     """Async version of acquire."""
+    #     async with self._async_lock_instance:
+    #         with self._lock:
+    #             wait_time = self._wait_time()
+    #         if wait_time > 0:
+    #             logger.info(f"Rate limit: waiting {wait_time:.1f}s")
+    #             await asyncio.sleep(wait_time)
+    #         with self._lock:
+    #             self._clean_old_requests()
+    #             self._requests.append(time.time())
+
+    ## For future use 
     
     def report_rate_limit_error(self) -> None:
         """Report 429 error - triggers adaptive backoff."""
